@@ -21,7 +21,7 @@
 #define dapush(a, x) \
 	do { \
 		if ((a)->len >= (a)->cap) { \
-			(a)->cap = (a)->cap * DA_FACTOR + 1; \
+			(a)->cap = (a)->cap ? (a)->cap * DA_FACTOR : 1; \
 			(a)->buf = alloc((a)->buf, (a)->cap, __da_s(a)); \
 		} \
 		(a)->buf[(a)->len++] = (x); \
