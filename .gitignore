@@ -1,5 +1,6 @@
 .cache/
 *.o
+.clangd
 andy
 compile_commands.json
 make
