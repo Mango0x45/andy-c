@@ -4,8 +4,10 @@
 #include <unistd.h>
 
 #include <readline/readline.h>
+#include <readline/history.h>
 
 #include "lexer.h"
+#include "utf8.h"
 
 static bool interactive;
 
@@ -29,12 +31,16 @@ void
 rloop(void)
 {
 	for (;;) {
-		char *line;
+		char *p, *line;
 
 		if (!(line = readline("=> "))) {
 			fputs("^D\n", stderr);
 			break;
 		}
+
+		if (*(p = utf8trim(line)))
+			add_history(p);
+
 		lexstr(line, NULL);
 		free(line);
 	}

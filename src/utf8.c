@@ -1,6 +1,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "uni.h"
 #include "utf8.h"
 
 rune_t
@@ -32,4 +33,36 @@ utf8iter(const char *s, size_t *di)
 
 	*di += w;
 	return cp;
+}
+
+char *
+utf8trim(char *s)
+{
+	rune_t cp;
+	size_t i = 0;
+
+	for (size_t j = 0; (cp = utf8iter(s, &j)) && unispace(cp); i = j)
+		;
+	s += i;
+	for (i = 0; (cp = utf8iter(s, &i));) {
+		if (utf8all(s + i, unispace)) {
+			s[i] = 0;
+			break;
+		}
+	}
+	return s;
+}
+
+bool
+utf8all(const char *s, bool (*pfn)(rune_t))
+{
+	rune_t cp;
+	size_t i = 0;
+
+	while ((cp = utf8iter(s, &i))) {
+		if (!pfn(cp))
+			return false;
+	}
+
+	return true;
 }
