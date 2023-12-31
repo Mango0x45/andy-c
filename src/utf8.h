@@ -5,8 +5,19 @@
 
 #include "uni.h"
 
-rune_t utf8iter(const char *, size_t *);
+/* Return the rune at index n in the given string, and set n to the index of the
+   next rune.  If an invalid byte-sequence is detected, UNI_REPL_CHAR is
+   returned. */
+rune_t utf8iter(const char *, size_t *n);
+
+/* Remove leading- and trailing-whitespace from the given string, and return a
+   pointer to the beginning of the string.  This function destructively modifies
+   the input string, and the return value does not need to equal the input
+   pointer. */
 char *utf8trim(char *);
+
+/* Return whether the given predicate function returns true for all runes in the
+   given string. */
 bool utf8all(const char *, bool (*)(rune_t));
 
 #endif /* !ANDY_UTF8_H */
