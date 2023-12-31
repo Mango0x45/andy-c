@@ -19,6 +19,14 @@
 #define TARGET "andy"
 
 #define streq(x, y) (!strcmp(x, y))
+#define cmdprc(c) \
+	do { \
+		int ec; \
+		cmdput(c); \
+		if ((ec = cmdexec(c))) \
+			diex("%s terminated with exit-code %d", *c._argv, ec); \
+		cmdclr(&c); \
+	} while (0)
 
 static int globerr(const char *, int);
 static char *ctoo(const char *);
@@ -66,8 +74,7 @@ main(int argc, char **argv)
 			cmd_t c = {0};
 			cmdadd(&c, "find", ".", "(", "-name", TARGET, "-or", "-name", "*.o",
 			       ")", "-delete");
-			cmdput(c);
-			cmdexec(c);
+			cmdprc(c);
 		} else {
 			fprintf(stderr, "%s: invalid subcommand -- '%s'\n", *_cbs_argv,
 			        *argv);
@@ -124,10 +131,7 @@ build(void)
 			if (streq("src/main.c", src))
 				cmdaddv(&c, v.buf, v.len);
 			cmdadd(&c, "-o", dst, "-c", src);
-
-			cmdput(c);
-			cmdexec(c);
-			cmdclr(&c);
+			cmdprc(c);
 		}
 
 		free(dst);
@@ -147,9 +151,7 @@ build(void)
 			cmdadd(&c, LDFLAGS_RELEASE);
 		cmdadd(&c, "-o", TARGET);
 		cmdaddv(&c, g.gl_pathv, g.gl_pathc);
-
-		cmdput(c);
-		cmdexec(c);
+		cmdprc(c);
 	}
 
 	free(c._argv);
