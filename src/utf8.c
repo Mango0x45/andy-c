@@ -24,7 +24,7 @@ utf8iter(const char *s, size_t *di)
 		w = 4;
 	}
 
-	for (int i = 1; i < w; ++i) {
+	for (int i = 1; i < w; i++) {
 		if ((s[*di + i] & 0xC0) != 0x80)
 			return UNI_REPL_CHAR;
 		cp = (cp << 6) | (s[*di + i] & 0x3F);
