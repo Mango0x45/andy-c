@@ -1,9 +1,12 @@
+#include <locale.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
 #include <readline/readline.h>
+
+#include "lexer.h"
 
 static bool interactive;
 
@@ -14,9 +17,10 @@ main(int argc, char **argv)
 {
 	(void)argc;
 	(void)argv;
-	interactive = isatty(STDOUT_FILENO);
 
-	if (interactive)
+	setlocale(LC_ALL, "");
+
+	if ((interactive = isatty(STDOUT_FILENO)))
 		rloop();
 
 	return EXIT_SUCCESS;
@@ -32,7 +36,7 @@ rloop(void)
 			fputs("^D\n", stderr);
 			break;
 		}
-		fprintf(stderr, "got the line ‘%s’\n", line);
+		lexstr(line, NULL);
 		free(line);
 	}
 }
