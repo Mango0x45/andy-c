@@ -16,6 +16,9 @@ lexstr(const char *s, struct lextoks *toks)
 			puts("Invalid char");
 			break;
 		}
-		printf("Got rune ‘%lc’\n", r);
+		if (unispace(r))
+			printf("Got a space\n");
+		else
+			printf("Got rune ‘%lc’\n", r);
 	}
 }
