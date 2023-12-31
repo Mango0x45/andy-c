@@ -49,6 +49,7 @@ int
 main(int argc, char **argv)
 {
 	int opt;
+	char *p;
 
 	cbsinit(argc, argv);
 	rebuild();
@@ -62,6 +63,9 @@ main(int argc, char **argv)
 			usage();
 		}
 	}
+
+	if ((p = getenv("ANDY_DEV")) && *p)
+		dflag = true;
 
 	argc -= optind;
 	argv += optind;
