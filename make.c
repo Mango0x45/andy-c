@@ -16,6 +16,8 @@
 #define CFLAGS_RELEASE  "-O3", "-march=native", "-mtune=native", "-flto"
 #define LDFLAGS_RELEASE "-flto"
 
+#define TARGET "andy"
+
 #define streq(x, y) (!strcmp(x, y))
 
 static int globerr(const char *, int);
@@ -28,7 +30,10 @@ static bool dflag;
 void
 usage(void)
 {
-	fprintf(stderr, "Usage: %s [-d]\n", *_cbs_argv);
+	fprintf(stderr,
+	        "Usage: %1$s [-d]\n"
+	        "       %1$s clean\n",
+	        *_cbs_argv);
 	exit(EXIT_FAILURE);
 }
 
@@ -55,7 +60,21 @@ main(int argc, char **argv)
 
 	if (chdir(dirname(*(argv - optind))) == -1)
 		die("chdir: %s", *(argv - optind));
-	build();
+
+	if (argc > 0) {
+		if (streq("clean", *argv)) {
+			cmd_t c = {0};
+			cmdadd(&c, "find", ".", "(", "-name", TARGET, "-or", "-name", "*.o",
+			       ")", "-delete");
+			cmdput(c);
+			cmdexec(c);
+		} else {
+			fprintf(stderr, "%s: invalid subcommand -- '%s'\n", *_cbs_argv,
+			        *argv);
+			usage();
+		}
+	} else
+		build();
 
 	return EXIT_SUCCESS;
 }
@@ -117,7 +136,7 @@ build(void)
 	for (size_t i = 0; i < g.gl_pathc; i++)
 		g.gl_pathv[i][strlen(g.gl_pathv[i]) - 1] = 'o';
 
-	if (foutdatedv("andy", (const char **)g.gl_pathv, g.gl_pathc)) {
+	if (foutdatedv(TARGET, (const char **)g.gl_pathv, g.gl_pathc)) {
 		strvfree(&v);
 		cmdadd(&c, CC);
 		if (pcquery(&v, "readline", PKGC_LIBS))
@@ -126,7 +145,7 @@ build(void)
 			cmdadd(&c, "-lreadline");
 		if (!dflag)
 			cmdadd(&c, LDFLAGS_RELEASE);
-		cmdadd(&c, "-o", "andy");
+		cmdadd(&c, "-o", TARGET);
 		cmdaddv(&c, g.gl_pathv, g.gl_pathc);
 
 		cmdput(c);
