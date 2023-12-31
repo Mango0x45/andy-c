@@ -27,24 +27,25 @@ func main() {
 	}
 
 	for _, r := range rs {
-		f(r)
+		fmt.Print(r)
 	}
 	fmt.Println("; }")
 }
 
-func f(r Range) {
+func (r Range) String() string {
+	var s string
+
 	if first {
 		first = false
 	} else {
-		fmt.Print(" ||")
+		s += " ||"
 	}
 
 	switch r.hi - r.lo {
 	case 0:
-		fmt.Printf(" ch == 0x%04X", r.lo)
+		return s + fmt.Sprintf(" ch == 0x%04X", r.lo)
 	case 1:
-		fmt.Printf(" ch == 0x%04X || ch == 0x%04X", r.lo, r.hi)
-	default:
-		fmt.Printf(" (ch >= 0x%04X && ch <= 0x%04X)", r.lo, r.hi)
+		return s + fmt.Sprintf(" ch == 0x%04X || ch == 0x%04X", r.lo, r.hi)
 	}
+	return s + fmt.Sprintf(" (ch >= 0x%04X && ch <= 0x%04X)", r.lo, r.hi)
 }
