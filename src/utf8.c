@@ -1,15 +1,15 @@
 #include <stddef.h>
-#include <stdint.h>
+#include <uchar.h>
 
 #include "uni.h"
 #include "utf8.h"
 
 rune_t
-utf8iter(const char *s, size_t *di)
+utf8iter(const char8_t *s, size_t *di)
 {
 	int w;
 	rune_t cp;
-	uint8_t b = s[*di];
+	char8_t b = s[*di];
 
 	if (b < 0x80) {
 		cp = b;
@@ -35,8 +35,8 @@ utf8iter(const char *s, size_t *di)
 	return cp;
 }
 
-char *
-utf8trim(char *s)
+char8_t *
+utf8trim(char8_t *s)
 {
 	rune_t cp;
 	size_t i = 0;
@@ -54,7 +54,7 @@ utf8trim(char *s)
 }
 
 bool
-utf8all(const char *s, bool (*pfn)(rune_t))
+utf8all(const char8_t *s, bool (*pfn)(rune_t))
 {
 	rune_t cp;
 	size_t i = 0;
@@ -67,8 +67,8 @@ utf8all(const char *s, bool (*pfn)(rune_t))
 	return true;
 }
 
-char *
-utf8skipf(const char *s, bool (*pfn)(rune_t))
+char8_t *
+utf8skipf(const char8_t *s, bool (*pfn)(rune_t))
 {
 	rune_t ch;
 	size_t i, j;
@@ -78,5 +78,5 @@ utf8skipf(const char *s, bool (*pfn)(rune_t))
 			break;
 	}
 
-	return (char *)s + j;
+	return (char8_t *)s + j;
 }

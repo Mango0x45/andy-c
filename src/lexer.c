@@ -1,5 +1,6 @@
 #include <limits.h>
 #include <stddef.h>
+#include <uchar.h>
 
 #include "da.h"
 #include "lexer.h"
@@ -17,7 +18,7 @@ static const bool metachars[CHAR_MAX + 1] = {
 };
 
 void
-lexstr(const char *s, struct lextoks *toks)
+lexstr(const char8_t *s, struct lextoks *toks)
 {
 	dainit(toks, 64);
 

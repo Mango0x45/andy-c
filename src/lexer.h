@@ -2,6 +2,7 @@
 #define ANDY_LEXER_H
 
 #include <stddef.h>
+#include <uchar.h>
 
 typedef enum {
 	LTK_ARG,
@@ -14,7 +15,7 @@ typedef enum {
 } lex_token_kind_t;
 
 struct lextok {
-	const char *p;
+	const char8_t *p;
 	size_t len;
 	lex_token_kind_t kind;
 };
@@ -24,6 +25,6 @@ struct lextoks {
 	size_t len, cap;
 };
 
-void lexstr(const char *, struct lextoks *);
+void lexstr(const char8_t *, struct lextoks *);
 
 #endif /* !ANDY_LEXER_H */

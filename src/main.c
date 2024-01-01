@@ -1,6 +1,7 @@
 #include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <uchar.h>
 #include <unistd.h>
 
 #include <readline/history.h>
@@ -32,16 +33,16 @@ void
 rloop(void)
 {
 	for (;;) {
-		char *p, *line;
+		char8_t *p, *line;
 		struct lextoks toks;
 
-		if (!(line = readline("=> "))) {
+		if (!(line = (char8_t *)readline("=> "))) {
 			fputs("^D\n", stderr);
 			break;
 		}
 
 		if (*(p = utf8trim(line)))
-			add_history(p);
+			add_history((char *)p);
 
 		lexstr(line, &toks);
 
