@@ -1,7 +1,6 @@
 #ifndef ANDY_UTF8_H
 #define ANDY_UTF8_H
 
-#include <stddef.h>
 #include <uchar.h>
 
 #include "uni.h"

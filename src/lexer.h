@@ -1,7 +1,6 @@
 #ifndef ANDY_LEXER_H
 #define ANDY_LEXER_H
 
-#include <stddef.h>
 #include <uchar.h>
 
 typedef enum {

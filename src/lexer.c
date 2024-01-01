@@ -1,5 +1,4 @@
 #include <limits.h>
-#include <stddef.h>
 #include <uchar.h>
 
 #include "da.h"

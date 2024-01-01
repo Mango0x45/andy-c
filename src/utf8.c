@@ -1,4 +1,3 @@
-#include <stddef.h>
 #include <uchar.h>
 
 #include "uni.h"
