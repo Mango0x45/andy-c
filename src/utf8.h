@@ -20,4 +20,8 @@ char *utf8trim(char *);
    given string. */
 bool utf8all(const char *, bool (*)(rune_t));
 
+/* Return a pointer to first rune in the given string for which the given
+   predicate function is false. */
+char *utf8skipf(const char *, bool (*)(rune_t));
+
 #endif /* !ANDY_UTF8_H */

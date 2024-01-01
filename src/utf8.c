@@ -66,3 +66,17 @@ utf8all(const char *s, bool (*pfn)(rune_t))
 
 	return true;
 }
+
+char *
+utf8skipf(const char *s, bool (*pfn)(rune_t))
+{
+	rune_t ch;
+	size_t i, j;
+
+	for (i = j = 0; (ch = utf8iter(s, &i)); j = i) {
+		if (!pfn(ch))
+			break;
+	}
+
+	return (char *)s + j;
+}
