@@ -51,12 +51,8 @@ lexstr(const char8_t *s, struct lextoks *toks)
 			TOKLIT(1, LTK_NL);
 		else if (ch == '(')
 			TOKLIT(1, LTK_PRN_O);
-		else if (ch == ')')
-			TOKLIT(1, LTK_PRN_C);
 		else if (ch == '{')
 			TOKLIT(1, LTK_BRC_O);
-		else if (ch == '}')
-			TOKLIT(1, LTK_BRC_C);
 		else {
 			tok.p = s;
 			s = lexarg(s);
