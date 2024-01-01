@@ -40,15 +40,15 @@ utf8trim(char8_t *s)
 	rune_t ch;
 	size_t i = 0;
 
-	for (size_t j = 0; (ch = utf8iter(s, &j)) && unispace(ch); i = j)
-		;
-	s += i;
-	for (i = 0; (ch = utf8iter(s, &i));) {
+	s = utf8skipf(s, unispace);
+
+	while ((ch = utf8iter(s, &i))) {
 		if (utf8all(s + i, unispace)) {
 			s[i] = 0;
 			break;
 		}
 	}
+
 	return s;
 }
 
