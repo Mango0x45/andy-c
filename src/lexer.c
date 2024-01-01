@@ -96,6 +96,7 @@ lexstr(const char8_t *s, struct lextoks *toks)
 		dapush(toks, tok);
 	}
 
+	dapush(toks, ((struct lextok){.kind = LTK_NL}));
 	free(ls.buf);
 }
 
