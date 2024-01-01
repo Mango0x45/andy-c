@@ -9,7 +9,13 @@ typedef char32_t rune_t;
    are detected. */
 constexpr rune_t UNI_REPL_CHAR = U'�';
 
+/* TODO: Remove these pragmas once GCC properly supports [[unsequenced]] */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wattributes"
+
 /* Assert whether the given rune is a unicode whitespace character. */
-[[gnu::const]] bool unispace(rune_t);
+[[unsequenced]] bool unispace(rune_t);
+
+#pragma GCC diagnostic pop
 
 #endif /* !ANDY_UNI_H */
