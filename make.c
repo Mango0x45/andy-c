@@ -84,6 +84,11 @@ main(int argc, char **argv)
 			cmdadd(&c, "find", ".", "(", "-name", TARGET, "-or", "-name", "*.o",
 			       ")", "-delete");
 			cmdprc(c);
+		} else if (streq("includes", *argv)) {
+			cmd_t c = {};
+			cmdadd(&c, "find", "src", "-name", "*.c", "-exec",
+			       "include-what-you-use", "-std=c2x", "{}", ";");
+			cmdprc(c);
 		} else {
 			fprintf(stderr, "%s: invalid subcommand -- '%s'\n", argv0, *argv);
 			usage();
