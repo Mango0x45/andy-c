@@ -1,0 +1,31 @@
+Building
+========
+
+Building Andy requires nothing more than a C compiler.  Ideally you
+should also have pkg-config(1) installed on your system, but it is not
+required.
+
+    $ cc -o make make.c
+    $ ./make
+
+
+Tips For Developers
+===================
+
+For a more ‘make-like-feel’, the following may be useful:
+
+    $ alias make `{git rev-parse --show-toplevel}/make
+
+The following might also be very handy if you find that the generated
+object files polute your file listing:
+
+    $ alias ls (ls --hide='*.o')
+
+It’s probably also good to always be building debug builds.  There are two ways
+to achieve that:
+
+    $ alias make (make -d)
+
+or
+
+    $ export ANDY_DEV=1
