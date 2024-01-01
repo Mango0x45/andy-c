@@ -33,14 +33,16 @@ static void usage(void);
 static void build(void);
 
 static bool dflag;
+static char *argv0;
 
 void
 usage(void)
 {
 	fprintf(stderr,
 	        "Usage: %1$s [-d]\n"
-	        "       %1$s clean\n",
-	        *_cbs_argv);
+	        "       %1$s clean\n"
+	        "       %1$s includes\n",
+	        argv0);
 	exit(EXIT_FAILURE);
 }
 
@@ -52,6 +54,10 @@ main(int argc, char **argv)
 
 	cbsinit(argc, argv);
 	rebuild();
+
+	if (!(argv0 = strdup(*argv)))
+		die("strdup");
+	argv0 = basename(argv0);
 
 	while ((opt = getopt(argc, argv, "d")) != -1) {
 		switch (opt) {
@@ -79,8 +85,7 @@ main(int argc, char **argv)
 			       ")", "-delete");
 			cmdprc(c);
 		} else {
-			fprintf(stderr, "%s: invalid subcommand -- '%s'\n", *_cbs_argv,
-			        *argv);
+			fprintf(stderr, "%s: invalid subcommand -- '%s'\n", argv0, *argv);
 			usage();
 		}
 	} else
