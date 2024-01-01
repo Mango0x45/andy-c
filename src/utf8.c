@@ -7,43 +7,43 @@ rune_t
 utf8iter(const char8_t *s, size_t *di)
 {
 	int w;
-	rune_t cp;
+	rune_t ch;
 	char8_t b = s[*di];
 
 	if (b < 0x80) {
-		cp = b;
+		ch = b;
 		w = 1;
 	} else if (b < 0xE0) {
-		cp = b & 0x1F;
+		ch = b & 0x1F;
 		w = 2;
 	} else if (b < 0xF0) {
-		cp = b & 0x0F;
+		ch = b & 0x0F;
 		w = 3;
 	} else {
-		cp = b & 0x07;
+		ch = b & 0x07;
 		w = 4;
 	}
 
 	for (int i = 1; i < w; i++) {
 		if ((s[*di + i] & 0xC0) != 0x80)
 			return UNI_REPL_CHAR;
-		cp = (cp << 6) | (s[*di + i] & 0x3F);
+		ch = (ch << 6) | (s[*di + i] & 0x3F);
 	}
 
 	*di += w;
-	return cp;
+	return ch;
 }
 
 char8_t *
 utf8trim(char8_t *s)
 {
-	rune_t cp;
+	rune_t ch;
 	size_t i = 0;
 
-	for (size_t j = 0; (cp = utf8iter(s, &j)) && unispace(cp); i = j)
+	for (size_t j = 0; (ch = utf8iter(s, &j)) && unispace(ch); i = j)
 		;
 	s += i;
-	for (i = 0; (cp = utf8iter(s, &i));) {
+	for (i = 0; (ch = utf8iter(s, &i));) {
 		if (utf8all(s + i, unispace)) {
 			s[i] = 0;
 			break;
@@ -55,11 +55,11 @@ utf8trim(char8_t *s)
 bool
 utf8all(const char8_t *s, bool (*pfn)(rune_t))
 {
-	rune_t cp;
+	rune_t ch;
 	size_t i = 0;
 
-	while ((cp = utf8iter(s, &i))) {
-		if (!pfn(cp))
+	while ((ch = utf8iter(s, &i))) {
+		if (!pfn(ch))
 			return false;
 	}
 
