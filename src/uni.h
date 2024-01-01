@@ -3,11 +3,11 @@
 
 #include <uchar.h>
 
+typedef char32_t rune_t;
+
 /* U+FFFD REPLACEMENT CHARACTER; intended for use when invalid UTF-8 sequences
    are detected. */
-#define UNI_REPL_CHAR ((rune_t)0xFFFD)
-
-typedef char32_t rune_t;
+constexpr rune_t UNI_REPL_CHAR = U'�';
 
 /* Assert whether the given rune is a unicode whitespace character. */
 [[gnu::const]] bool unispace(rune_t);
