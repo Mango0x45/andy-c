@@ -6,10 +6,12 @@
 #include "uni.h"
 #include "utf8.h"
 
+static char8_t *lexarg(const char8_t *);
 static bool in_comment(rune_t);
 static bool is_arg_char(rune_t);
 
 static const bool metachars[CHAR_MAX + 1] = {
+	['#'] = true,
 	['('] = true,
 	[';'] = true,
 	['{'] = true,
@@ -57,7 +59,7 @@ lexstr(const char8_t *s, struct lextoks *toks)
 			TOKLIT(1, LTK_BRC_C);
 		else {
 			tok.p = s;
-			s = utf8skipf(s, is_arg_char);
+			s = lexarg(s);
 			tok.len = s - tok.p;
 			tok.kind = LTK_ARG;
 		}
@@ -80,4 +82,18 @@ is_arg_char(rune_t ch)
 	if (ch <= CHAR_MAX && metachars[ch])
 		return false;
 	return !unispace(ch);
+}
+
+char8_t *
+lexarg(const char8_t *s)
+{
+	rune_t ch;
+	size_t i = 0;
+
+	while ((ch = utf8iter(s, &i))) {
+		if (!is_arg_char(ch))
+			break;
+	}
+
+	return (char8_t *)s + i - utf8wdth(ch);
 }
