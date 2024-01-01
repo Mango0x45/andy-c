@@ -46,8 +46,16 @@ rloop(void)
 
 		lexstr(line, &toks);
 
-		da_foreach (&toks, tok)
-			printf("token: ‘%.*s’\n", (int)tok->len, tok->p);
+		da_foreach (&toks, tok) {
+			if (tok->kind == LTK_NL && !tok->p)
+				puts("EOF");
+			else {
+				printf("token: ‘%.*s’", (int)tok->len, tok->p);
+				if (tok->flags & LF_FD)
+					printf("; flags: LS_FD");
+				putchar('\n');
+			}
+		}
 
 		free(line);
 		free(toks.buf);

@@ -21,9 +21,14 @@ typedef enum {
 	LTK_RDR_WR,   /* Writing redirection */
 } lex_token_kind_t;
 
+typedef enum {
+	LF_FD = 1 << 0,
+} lex_tokflags_t;
+
 struct lextok {
 	const char8_t *p;
 	size_t len;
+	int flags;
 	lex_token_kind_t kind;
 };
 

@@ -38,7 +38,7 @@ lexstr(const char8_t *s, struct lextoks *toks)
 	while (*s) {
 		rune_t ch;
 		size_t i = 0;
-		struct lextok tok;
+		struct lextok tok = {};
 
 		s = utf8skipf(s, unispace);
 		ch = utf8iter(s, &i);
@@ -52,9 +52,9 @@ lexstr(const char8_t *s, struct lextoks *toks)
 		/* Set tok to the token of kind k and byte-length w */
 #define TOKLIT(w, k) \
 	do { \
-		tok.p = s; \
-		tok.len = w; \
-		tok.kind = k; \
+		tok.p = (s); \
+		tok.len = (w); \
+		tok.kind = (k); \
 		s += w; \
 	} while (false)
 
@@ -90,12 +90,28 @@ lexstr(const char8_t *s, struct lextoks *toks)
 			dapush(&ls, LS_BRACE);
 		} else if (ISLIT(">>")) {
 			TOKLIT(2, LTK_RDR_APP);
+			if (*s == '&') {
+				tok.flags = LF_FD;
+				s++;
+			}
 		} else if (ISLIT(">!")) {
 			TOKLIT(2, LTK_RDR_CLB);
+			if (*s == '&') {
+				tok.flags = LF_FD;
+				s++;
+			}
 		} else if (ch == '>') {
 			TOKLIT(1, LTK_RDR_RD);
+			if (*s == '&') {
+				tok.flags = LF_FD;
+				s++;
+			}
 		} else if (ch == '<') {
 			TOKLIT(1, LTK_RDR_WR);
+			if (*s == '&') {
+				tok.flags = LF_FD;
+				s++;
+			}
 		} else {
 			tok.p = s;
 			s = lexarg(s, &ls);
