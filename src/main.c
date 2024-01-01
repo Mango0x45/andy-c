@@ -32,6 +32,7 @@ rloop(void)
 {
 	for (;;) {
 		char *p, *line;
+		struct lextoks toks;
 
 		if (!(line = readline("=> "))) {
 			fputs("^D\n", stderr);
@@ -41,7 +42,8 @@ rloop(void)
 		if (*(p = utf8trim(line)))
 			add_history(p);
 
-		lexstr(line, NULL);
+		lexstr(line, &toks);
 		free(line);
+		free(toks.buf);
 	}
 }

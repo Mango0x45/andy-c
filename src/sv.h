@@ -4,7 +4,7 @@
 #include <stddef.h>
 
 struct sv {
-	char *p;
+	const char *p;
 	size_t len;
 };
 
