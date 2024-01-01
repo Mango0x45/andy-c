@@ -76,6 +76,18 @@ lexstr(const char8_t *s, struct lextoks *toks)
 		} else if (ch == ')' && datopis(&ls, LS_PAREN)) {
 			TOKLIT(1, LTK_PRN_C);
 			ls.len--;
+		} else if (ISLIT("`{")) {
+			TOKLIT(2, LTK_PRC_SUB);
+			dapush(&ls, LS_BRACE);
+		} else if (ISLIT("<{")) {
+			TOKLIT(2, LTK_PRC_RD);
+			dapush(&ls, LS_BRACE);
+		} else if (ISLIT(">{")) {
+			TOKLIT(2, LTK_PRC_WR);
+			dapush(&ls, LS_BRACE);
+		} else if (ISLIT("<>{")) {
+			TOKLIT(3, LTK_PRC_RDWR);
+			dapush(&ls, LS_BRACE);
 		} else if (ISLIT(">>")) {
 			TOKLIT(2, LTK_RDR_APP);
 		} else if (ISLIT(">!")) {
