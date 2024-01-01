@@ -49,9 +49,6 @@ lexstr(const char8_t *s, struct lextoks *toks)
 			continue;
 		}
 
-		/* Assert if we are at the string-literal x */
-#define ISLIT(x) (!strncmp((char *)s, (x), sizeof(x) - 1))
-
 		/* Set tok to the token of kind k and byte-length w */
 #define TOKLIT(w, k) \
 	do { \
@@ -61,6 +58,8 @@ lexstr(const char8_t *s, struct lextoks *toks)
 		s += w; \
 	} while (false)
 
+		/* Assert if we are at the string-literal x */
+#define ISLIT(x) (!strncmp((char *)s, (x), sizeof(x) - 1))
 		if (ch == '|') {
 			TOKLIT(1, LTK_PIPE);
 		} else if (ch == ';' || ch == '\n') {
@@ -91,9 +90,8 @@ lexstr(const char8_t *s, struct lextoks *toks)
 			tok.len = s - tok.p;
 			tok.kind = LTK_ARG;
 		}
-
-#undef TOKLIT
 #undef ISLIT
+#undef TOKLIT
 
 		dapush(toks, tok);
 	}
