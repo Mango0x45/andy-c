@@ -2,50 +2,43 @@ package main
 
 import (
 	"fmt"
+	"strings"
 	"unicode"
 )
-
-var first = true
 
 type Range struct {
 	lo, hi rune
 }
 
 func main() {
-	fmt.Print("bool unispace(rune_t ch) { return")
+	MkFunc("unispace", unicode.IsSpace)
+}
 
-	rs := []Range{}
+func MkFunc(name string, pred func(rune) bool) {
+	fmt.Printf("bool %s(rune_t ch) { return ", name)
+
+	xs := []string{}
 	for ch := rune(0); ch < unicode.MaxRune; ch++ {
-		if !unicode.IsSpace(ch) {
+		if !pred(ch) {
 			continue
 		}
 		lo := ch
-		for unicode.IsSpace(ch) {
+		for pred(ch) {
 			ch++
 		}
-		rs = append(rs, Range{lo, ch - 1})
+		xs = append(xs, Range{lo, ch - 1}.String())
 	}
 
-	for _, r := range rs {
-		fmt.Print(r)
-	}
+	fmt.Print(strings.Join(xs, " || "))
 	fmt.Println("; }")
 }
 
 func (r Range) String() string {
-	var s string
-
-	if first {
-		first = false
-	} else {
-		s += " ||"
-	}
-
 	switch r.hi - r.lo {
 	case 0:
-		return s + fmt.Sprintf(" ch == 0x%04X", r.lo)
+		return fmt.Sprintf("ch == 0x%04X", r.lo)
 	case 1:
-		return s + fmt.Sprintf(" ch == 0x%04X || ch == 0x%04X", r.lo, r.hi)
+		return fmt.Sprintf("ch == 0x%04X || ch == 0x%04X", r.lo, r.hi)
 	}
-	return s + fmt.Sprintf(" (ch >= 0x%04X && ch <= 0x%04X)", r.lo, r.hi)
+	return fmt.Sprintf("(ch >= 0x%04X && ch <= 0x%04X)", r.lo, r.hi)
 }
