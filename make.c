@@ -8,12 +8,11 @@
 
 #include "cbs.h"
 
-#define CC "cc"
-#define CFLAGS \
-	"-Wall", "-Wextra", "-Wpedantic", "-Werror", "-D_GNU_SOURCE", "-std=c2x", \
-		"-pipe"
-#define CFLAGS_DEBUG    "-g", "-ggdb3"
-#define CFLAGS_RELEASE  "-O3", "-march=native", "-mtune=native", "-flto"
+#define CC           "cc"
+#define CFLAGS       "-Wall", "-Wextra", "-Wpedantic", "-std=c2x", "-pipe"
+#define CFLAGS_DEBUG "-g", "-ggdb3"
+#define CFLAGS_RELEASE \
+	"-Werror", "-O3", "-march=native", "-mtune=native", "-flto"
 #define LDFLAGS_RELEASE "-flto"
 
 #define TARGET "andy"
