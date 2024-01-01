@@ -10,6 +10,6 @@
 typedef uint32_t rune_t;
 
 /* Assert whether the given rune is a unicode whitespace character. */
-bool unispace(rune_t);
+[[gnu::const]] bool unispace(rune_t);
 
 #endif /* !ANDY_UNI_H */
