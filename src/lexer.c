@@ -1,4 +1,5 @@
 #include <limits.h>
+#include <string.h>
 #include <uchar.h>
 
 #include "da.h"
@@ -11,11 +12,8 @@ static bool in_comment(rune_t);
 static bool is_arg_char(rune_t);
 
 static const bool metachars[CHAR_MAX + 1] = {
-	['#'] = true,
-	['('] = true,
-	[';'] = true,
-	['{'] = true,
-	['|'] = true,
+	['#'] = true, ['('] = true, [';'] = true, ['<'] = true,
+	['>'] = true, ['{'] = true, ['|'] = true,
 };
 
 void
@@ -37,12 +35,16 @@ lexstr(const char8_t *s, struct lextoks *toks)
 			continue;
 		}
 
+		/* Assert if we are at the string-literal x */
+#define ISLIT(x) (!strncmp((char *)s, (x), sizeof(x) - 1))
+
+		/* Set tok to the token of kind k and byte-length w */
 #define TOKLIT(w, k) \
 	do { \
 		tok.p = s; \
 		tok.len = w; \
 		tok.kind = k; \
-		s++; \
+		s += w; \
 	} while (false)
 
 		if (ch == '|')
@@ -53,6 +55,14 @@ lexstr(const char8_t *s, struct lextoks *toks)
 			TOKLIT(1, LTK_PRN_O);
 		else if (ch == '{')
 			TOKLIT(1, LTK_BRC_O);
+		else if (ISLIT(">>"))
+			TOKLIT(2, LTK_RDR_APP);
+		else if (ISLIT(">!"))
+			TOKLIT(2, LTK_RDR_CLB);
+		else if (ch == '>')
+			TOKLIT(1, LTK_RDR_RD);
+		else if (ch == '<')
+			TOKLIT(1, LTK_RDR_WR);
 		else {
 			tok.p = s;
 			s = lexarg(s);
@@ -61,6 +71,7 @@ lexstr(const char8_t *s, struct lextoks *toks)
 		}
 
 #undef TOKLIT
+#undef ISLIT
 
 		dapush(toks, tok);
 	}

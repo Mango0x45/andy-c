@@ -4,13 +4,17 @@
 #include <uchar.h>
 
 typedef enum {
-	LTK_ARG,
-	LTK_BRC_C,
-	LTK_BRC_O,
-	LTK_NL,
-	LTK_PIPE,
-	LTK_PRN_C,
-	LTK_PRN_O,
+	LTK_ARG,     /* Argument */
+	LTK_BRC_C,   /* Closing brace */
+	LTK_BRC_O,   /* Opening brace */
+	LTK_NL,      /* End of statement */
+	LTK_PIPE,    /* Pipe */
+	LTK_PRN_C,   /* Closing parenthesis */
+	LTK_PRN_O,   /* Opening parenthesis */
+	LTK_RDR_APP, /* Appending redirection */
+	LTK_RDR_CLB, /* Clobbering redirection */
+	LTK_RDR_RD,  /* Reading redirection */
+	LTK_RDR_WR,  /* Writing redirection */
 } lex_token_kind_t;
 
 struct lextok {
