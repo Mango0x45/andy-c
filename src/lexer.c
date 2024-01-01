@@ -10,8 +10,10 @@ static bool in_comment(rune_t);
 static bool is_arg_char(rune_t);
 
 static const bool metachars[CHAR_MAX + 1] = {
-	['|'] = true,
+	['('] = true,
 	[';'] = true,
+	['{'] = true,
+	['|'] = true,
 };
 
 void
@@ -33,22 +35,34 @@ lexstr(const char *s, struct lextoks *toks)
 			continue;
 		}
 
-		if (ch == '|') {
-			tok.p = s;
-			tok.len = 1;
-			tok.kind = LTK_PIPE;
-			s++;
-		} else if (ch == ';' || ch == '\n') {
-			tok.p = s;
-			tok.len = 1;
-			tok.kind = LTK_NL;
-			s++;
-		} else {
+#define TOKLIT(w, k) \
+	do { \
+		tok.p = s; \
+		tok.len = w; \
+		tok.kind = k; \
+		s++; \
+	} while (false)
+
+		if (ch == '|')
+			TOKLIT(1, LTK_PIPE);
+		else if (ch == ';' || ch == '\n')
+			TOKLIT(1, LTK_NL);
+		else if (ch == '(')
+			TOKLIT(1, LTK_PRN_O);
+		else if (ch == ')')
+			TOKLIT(1, LTK_PRN_C);
+		else if (ch == '{')
+			TOKLIT(1, LTK_BRC_O);
+		else if (ch == '}')
+			TOKLIT(1, LTK_BRC_C);
+		else {
 			tok.p = s;
 			s = utf8skipf(s, is_arg_char);
 			tok.len = s - tok.p;
 			tok.kind = LTK_ARG;
 		}
+
+#undef TOKLIT
 
 		dapush(toks, tok);
 	}

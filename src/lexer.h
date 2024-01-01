@@ -5,8 +5,12 @@
 
 typedef enum {
 	LTK_ARG,
+	LTK_BRC_C,
+	LTK_BRC_O,
 	LTK_NL,
 	LTK_PIPE,
+	LTK_PRN_C,
+	LTK_PRN_O,
 } lex_token_kind_t;
 
 struct lextok {
