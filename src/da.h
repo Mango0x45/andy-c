@@ -15,7 +15,7 @@
 	do { \
 		(a)->cap = n; \
 		(a)->len = 0; \
-		(a)->buf = alloc((a)->buf, (a)->cap, __da_s(a)); \
+		(a)->buf = alloc(NULL, (a)->cap, __da_s(a)); \
 	} while (0)
 
 #define dapush(a, x) \
