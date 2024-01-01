@@ -70,12 +70,26 @@ char8_t *
 utf8skipf(const char8_t *s, bool (*pfn)(rune_t))
 {
 	rune_t ch;
-	size_t i, j;
+	size_t i = 0;
 
-	for (i = j = 0; (ch = utf8iter(s, &i)); j = i) {
+	while ((ch = utf8iter(s, &i))) {
 		if (!pfn(ch))
 			break;
 	}
 
-	return (char8_t *)s + j;
+	return (char8_t *)s + i - utf8wdth(ch);
+}
+
+int
+utf8wdth(rune_t ch)
+{
+	if (ch <= 0x7F)
+		return 1;
+	if (ch <= 0x7FF)
+		return 2;
+	if (ch <= 0xFFFF)
+		return 3;
+	if (ch <= 0x10FFFF)
+		return 4;
+	return 0;
 }

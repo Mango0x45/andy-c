@@ -24,4 +24,7 @@ bool utf8all(const char8_t *, bool (*)(rune_t));
    predicate function is false. */
 char8_t *utf8skipf(const char8_t *, bool (*)(rune_t));
 
+/* Return the number of bytes occupied by the given rune when UTF-8 encoded. */
+int utf8wdth(rune_t);
+
 #endif /* !ANDY_UTF8_H */
