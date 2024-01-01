@@ -35,7 +35,10 @@
 		(a)->len -= j - i; \
 	} while (0)
 
+/* TODO: typeof() is used here because Clang (I use the Clangd LSP) doesn’t yet
+   understand what ‘auto’ means in a C23 context.  By the time Clang catches up,
+   it would read nicer to rewrite this to use auto. */
 #define da_foreach(a, p) \
-	for (auto p = (a)->buf; p - (a)->buf < (ptrdiff_t)(a)->len; p++)
+	for (typeof((a)->buf) p = (a)->buf; p - (a)->buf < (ptrdiff_t)(a)->len; p++)
 
 #endif /* !MANGO_DA_H */
