@@ -3,9 +3,10 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <readline/readline.h>
 #include <readline/history.h>
+#include <readline/readline.h>
 
+#include "da.h"
 #include "lexer.h"
 #include "utf8.h"
 
@@ -43,6 +44,10 @@ rloop(void)
 			add_history(p);
 
 		lexstr(line, &toks);
+
+		da_foreach (&toks, tok)
+			printf("token: ‘%.*s’\n", (int)tok->len, tok->p);
+
 		free(line);
 		free(toks.buf);
 	}

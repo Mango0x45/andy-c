@@ -3,14 +3,13 @@
 
 #include <stddef.h>
 
-#include "sv.h"
-
 typedef enum {
 	LTK_ARG,
 } lex_token_kind_t;
 
 struct lextok {
-	struct sv sv;
+	const char *p;
+	size_t len;
 	lex_token_kind_t kind;
 };
 
