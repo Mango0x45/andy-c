@@ -1,4 +1,5 @@
 #include <limits.h>
+#include <stdlib.h>
 #include <string.h>
 #include <uchar.h>
 
@@ -7,7 +8,17 @@
 #include "uni.h"
 #include "utf8.h"
 
-static char8_t *lexarg(const char8_t *);
+typedef enum {
+	LS_BRACE, /* In braces */
+	LS_PAREN, /* In parenthesis */
+} lexstate_t;
+
+struct lexstates {
+	lexstate_t *buf;
+	size_t len, cap;
+};
+
+static char8_t *lexarg(const char8_t *, struct lexstates *);
 static bool in_comment(rune_t);
 static bool is_arg_char(rune_t);
 
@@ -19,6 +30,9 @@ static const bool metachars[CHAR_MAX + 1] = {
 void
 lexstr(const char8_t *s, struct lextoks *toks)
 {
+	struct lexstates ls;
+
+	dainit(&ls, 8);
 	dainit(toks, 64);
 
 	while (*s) {
@@ -47,25 +61,33 @@ lexstr(const char8_t *s, struct lextoks *toks)
 		s += w; \
 	} while (false)
 
-		if (ch == '|')
+		if (ch == '|') {
 			TOKLIT(1, LTK_PIPE);
-		else if (ch == ';' || ch == '\n')
+		} else if (ch == ';' || ch == '\n') {
 			TOKLIT(1, LTK_NL);
-		else if (ch == '(')
-			TOKLIT(1, LTK_PRN_O);
-		else if (ch == '{')
+		} else if (ch == '{') {
 			TOKLIT(1, LTK_BRC_O);
-		else if (ISLIT(">>"))
+			dapush(&ls, LS_BRACE);
+		} else if (ch == '(') {
+			TOKLIT(1, LTK_PRN_O);
+			dapush(&ls, LS_PAREN);
+		} else if (ch == '}' && datopis(&ls, LS_BRACE)) {
+			TOKLIT(1, LTK_BRC_C);
+			ls.len--;
+		} else if (ch == ')' && datopis(&ls, LS_PAREN)) {
+			TOKLIT(1, LTK_PRN_C);
+			ls.len--;
+		} else if (ISLIT(">>")) {
 			TOKLIT(2, LTK_RDR_APP);
-		else if (ISLIT(">!"))
+		} else if (ISLIT(">!")) {
 			TOKLIT(2, LTK_RDR_CLB);
-		else if (ch == '>')
+		} else if (ch == '>') {
 			TOKLIT(1, LTK_RDR_RD);
-		else if (ch == '<')
+		} else if (ch == '<') {
 			TOKLIT(1, LTK_RDR_WR);
-		else {
+		} else {
 			tok.p = s;
-			s = lexarg(s);
+			s = lexarg(s, &ls);
 			tok.len = s - tok.p;
 			tok.kind = LTK_ARG;
 		}
@@ -75,6 +97,8 @@ lexstr(const char8_t *s, struct lextoks *toks)
 
 		dapush(toks, tok);
 	}
+
+	free(ls.buf);
 }
 
 bool
@@ -92,13 +116,17 @@ is_arg_char(rune_t ch)
 }
 
 char8_t *
-lexarg(const char8_t *s)
+lexarg(const char8_t *s, struct lexstates *ls)
 {
 	rune_t ch;
 	size_t i = 0;
 
 	while ((ch = utf8iter(s, &i))) {
 		if (!is_arg_char(ch))
+			break;
+		if (ch == '}' && datopis(ls, LS_BRACE))
+			break;
+		if (ch == ')' && datopis(ls, LS_PAREN))
 			break;
 	}
 

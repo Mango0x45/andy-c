@@ -41,4 +41,6 @@
 #define da_foreach(a, p) \
 	for (typeof((a)->buf) p = (a)->buf; p - (a)->buf < (ptrdiff_t)(a)->len; p++)
 
+#define datopis(a, x) ((a)->len && (a)->buf[(a)->len - 1] == (x))
+
 #endif /* !MANGO_DA_H */
