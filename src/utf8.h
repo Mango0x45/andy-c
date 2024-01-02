@@ -22,7 +22,7 @@ bool utf8all(const char8_t *, bool (*)(rune));
 
 /* Return a pointer to first rune in the given string for which the given
    predicate function is false. */
-char8_t *utf8skipf(const char8_t *, bool (*)(rune));
+char8_t *utf8fskip(const char8_t *, bool (*)(rune));
 
 /* Return the number of bytes occupied by the given rune when UTF-8 encoded. */
 int utf8wdth(rune);

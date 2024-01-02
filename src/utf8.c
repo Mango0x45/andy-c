@@ -40,7 +40,7 @@ utf8trim(char8_t *s)
 	rune ch;
 	size_t i = 0;
 
-	s = utf8skipf(s, unispace);
+	s = utf8fskip(s, unispace);
 
 	while ((ch = utf8iter(s, &i))) {
 		if (utf8all(s + i, unispace)) {
@@ -67,7 +67,7 @@ utf8all(const char8_t *s, bool (*pfn)(rune))
 }
 
 char8_t *
-utf8skipf(const char8_t *s, bool (*pfn)(rune))
+utf8fskip(const char8_t *s, bool (*pfn)(rune))
 {
 	rune ch;
 	size_t i = 0;

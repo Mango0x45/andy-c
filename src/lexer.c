@@ -40,12 +40,12 @@ lexstr(const char8_t *s, struct lextoks *toks)
 		size_t i = 0;
 		struct lextok tok = {};
 
-		s = utf8skipf(s, unispace);
+		s = utf8fskip(s, unispace);
 		ch = utf8iter(s, &i);
 
 		/* Comments */
 		if (ch == '#') {
-			s = utf8skipf(s, in_comment);
+			s = utf8fskip(s, in_comment);
 			continue;
 		}
 
