@@ -4,33 +4,35 @@
 #include "utf8.h"
 
 rune
-utf8iter(const char8_t *s, size_t *di)
+utf8peek(const char8_t *s)
 {
-	int w;
 	rune ch;
-	char8_t b = s[*di];
 
-	if (b < 0x80) {
-		ch = b;
-		w = 1;
-	} else if (b < 0xE0) {
-		ch = b & 0x1F;
-		w = 2;
-	} else if (b < 0xF0) {
-		ch = b & 0x0F;
-		w = 3;
-	} else {
-		ch = b & 0x07;
-		w = 4;
-	}
+	if ((*s & 0x80) == 0) {
+		ch = *s;
+	} else if ((*s & 0xE0) == 0xC0) {
+		ch = *s & 0x1F;
+		ch = (ch << 6) | (s[1] & 0x3F);
+	} else if ((*s & 0xF0) == 0xE0) {
+		ch = *s & 0x0F;
+		ch = (ch << 6) | (s[1] & 0x3F);
+		ch = (ch << 6) | (s[2] & 0x3F);
+	} else if ((*s & 0xF8) == 0xF0) {
+		ch = *s & 0x07;
+		ch = (ch << 6) | (s[1] & 0x3F);
+		ch = (ch << 6) | (s[2] & 0x3F);
+		ch = (ch << 6) | (s[3] & 0x3F);
+	} else
+		return UNI_REPL_CHAR;
 
-	for (int i = 1; i < w; i++) {
-		if ((s[*di + i] & 0xC0) != 0x80)
-			return UNI_REPL_CHAR;
-		ch = (ch << 6) | (s[*di + i] & 0x3F);
-	}
+	return ch;
+}
 
-	*di += w;
+rune
+utf8next(const char8_t **s)
+{
+	rune ch = utf8peek(*s);
+	*s += utf8wdth(ch);
 	return ch;
 }
 
@@ -38,13 +40,13 @@ char8_t *
 utf8trim(char8_t *s)
 {
 	rune ch;
-	size_t i = 0;
+	char8_t *p;
 
-	s = utf8fskip(s, unispace);
+	s = p = utf8fskip(s, unispace);
 
-	while ((ch = utf8iter(s, &i))) {
-		if (utf8all(s + i, unispace)) {
-			s[i] = 0;
+	while ((ch = utf8next((const char8_t **)&p))) {
+		if (utf8all(p, unispace)) {
+			*p = 0;
 			break;
 		}
 	}
@@ -56,9 +58,8 @@ bool
 utf8all(const char8_t *s, bool (*pfn)(rune))
 {
 	rune ch;
-	size_t i = 0;
 
-	while ((ch = utf8iter(s, &i))) {
+	while ((ch = utf8next(&s))) {
 		if (!pfn(ch))
 			return false;
 	}
@@ -70,14 +71,13 @@ char8_t *
 utf8fskip(const char8_t *s, bool (*pfn)(rune))
 {
 	rune ch;
-	size_t i = 0;
 
-	while ((ch = utf8iter(s, &i))) {
+	while ((ch = utf8next(&s))) {
 		if (!pfn(ch))
 			break;
 	}
 
-	return (char8_t *)s + i - utf8wdth(ch);
+	return (char8_t *)s - utf8wdth(ch);
 }
 
 int

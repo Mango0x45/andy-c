@@ -37,17 +37,9 @@ lexstr(const char8_t *s, struct lextoks *toks)
 
 	while (*s) {
 		rune ch;
-		size_t i = 0;
 		struct lextok tok = {};
 
 		s = utf8fskip(s, unispace);
-		ch = utf8iter(s, &i);
-
-		/* Comments */
-		if (ch == '#') {
-			s = utf8fskip(s, in_comment);
-			continue;
-		}
 
 		/* Set tok to the token of kind k and byte-length w */
 #define TOKLIT(w, k) \
@@ -60,7 +52,12 @@ lexstr(const char8_t *s, struct lextoks *toks)
 
 		/* Assert if we are at the string-literal x */
 #define ISLIT(x) (!strncmp((char *)s, (x), sizeof(x) - 1))
-		if (ch == '|') {
+
+		ch = utf8peek(s);
+		if (ch == '#') {
+			s = utf8fskip(s, in_comment);
+			continue;
+		} else if (ch == '|') {
 			TOKLIT(1, LTK_PIPE);
 		} else if (ch == ';' || ch == '\n') {
 			TOKLIT(1, LTK_NL);
@@ -118,6 +115,7 @@ lexstr(const char8_t *s, struct lextoks *toks)
 			tok.len = s - tok.p;
 			tok.kind = LTK_ARG;
 		}
+
 #undef ISLIT
 #undef TOKLIT
 
@@ -146,9 +144,8 @@ char8_t *
 lexarg(const char8_t *s, struct lexstates *ls)
 {
 	rune ch;
-	size_t i = 0;
 
-	while ((ch = utf8iter(s, &i))) {
+	while ((ch = utf8next(&s))) {
 		if (!is_arg_char(ch))
 			break;
 		if (ch == '}' && datopis(ls, LS_BRACE))
@@ -157,5 +154,5 @@ lexarg(const char8_t *s, struct lexstates *ls)
 			break;
 	}
 
-	return (char8_t *)s + i - utf8wdth(ch);
+	return (char8_t *)s - utf8wdth(ch);
 }
