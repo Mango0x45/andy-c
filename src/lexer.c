@@ -19,8 +19,8 @@ struct lexstates {
 };
 
 static char8_t *lexarg(const char8_t *, struct lexstates *);
-static bool in_comment(rune_t);
-static bool is_arg_char(rune_t);
+static bool in_comment(rune);
+static bool is_arg_char(rune);
 
 static const bool metachars[CHAR_MAX + 1] = {
 	['#'] = true, ['('] = true, [';'] = true, ['<'] = true,
@@ -36,7 +36,7 @@ lexstr(const char8_t *s, struct lextoks *toks)
 	dainit(toks, 64);
 
 	while (*s) {
-		rune_t ch;
+		rune ch;
 		size_t i = 0;
 		struct lextok tok = {};
 
@@ -129,13 +129,13 @@ lexstr(const char8_t *s, struct lextoks *toks)
 }
 
 bool
-in_comment(rune_t ch)
+in_comment(rune ch)
 {
 	return ch != '\n' && ch != '\0';
 }
 
 bool
-is_arg_char(rune_t ch)
+is_arg_char(rune ch)
 {
 	if (ch <= CHAR_MAX && metachars[ch])
 		return false;
@@ -145,7 +145,7 @@ is_arg_char(rune_t ch)
 char8_t *
 lexarg(const char8_t *s, struct lexstates *ls)
 {
-	rune_t ch;
+	rune ch;
 	size_t i = 0;
 
 	while ((ch = utf8iter(s, &i))) {

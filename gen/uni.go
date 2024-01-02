@@ -15,7 +15,7 @@ func main() {
 }
 
 func MkFunc(name string, pred func(rune) bool) {
-	fmt.Printf("bool %s(rune_t ch) { return ", name)
+	fmt.Printf("bool %s(rune ch) { return ", name)
 
 	xs := []string{}
 	for ch := rune(0); ch < unicode.MaxRune; ch++ {

@@ -3,11 +3,11 @@
 #include "uni.h"
 #include "utf8.h"
 
-rune_t
+rune
 utf8iter(const char8_t *s, size_t *di)
 {
 	int w;
-	rune_t ch;
+	rune ch;
 	char8_t b = s[*di];
 
 	if (b < 0x80) {
@@ -37,7 +37,7 @@ utf8iter(const char8_t *s, size_t *di)
 char8_t *
 utf8trim(char8_t *s)
 {
-	rune_t ch;
+	rune ch;
 	size_t i = 0;
 
 	s = utf8skipf(s, unispace);
@@ -53,9 +53,9 @@ utf8trim(char8_t *s)
 }
 
 bool
-utf8all(const char8_t *s, bool (*pfn)(rune_t))
+utf8all(const char8_t *s, bool (*pfn)(rune))
 {
-	rune_t ch;
+	rune ch;
 	size_t i = 0;
 
 	while ((ch = utf8iter(s, &i))) {
@@ -67,9 +67,9 @@ utf8all(const char8_t *s, bool (*pfn)(rune_t))
 }
 
 char8_t *
-utf8skipf(const char8_t *s, bool (*pfn)(rune_t))
+utf8skipf(const char8_t *s, bool (*pfn)(rune))
 {
-	rune_t ch;
+	rune ch;
 	size_t i = 0;
 
 	while ((ch = utf8iter(s, &i))) {
@@ -81,7 +81,7 @@ utf8skipf(const char8_t *s, bool (*pfn)(rune_t))
 }
 
 int
-utf8wdth(rune_t ch)
+utf8wdth(rune ch)
 {
 	if (ch <= 0x7F)
 		return 1;
