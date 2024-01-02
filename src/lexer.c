@@ -1,3 +1,4 @@
+#include <err.h>
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
@@ -30,13 +31,20 @@ static const bool metachars[CHAR_MAX + 1] = {
 void
 lexstr(const char8_t *s, struct lextoks *toks)
 {
+	rune ch;
 	struct lexstates ls;
 
 	dainit(&ls, 8);
 	dainit(toks, 64);
 
+	for (const char8_t *p = s; ((ch = utf8next(&p)));) {
+		if (ch == UNI_REPL_CHAR) {
+			warnx("invalid UTF-8 sequence near ‘0x%2X’", *p);
+			return;
+		}
+	}
+
 	while (*s) {
-		rune ch;
 		struct lextok tok = {};
 
 		s = utf8fskip(s, unispace);

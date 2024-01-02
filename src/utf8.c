@@ -6,24 +6,29 @@
 rune
 utf8peek(const char8_t *s)
 {
+	int cb;
 	rune ch;
 
 	if ((*s & 0x80) == 0) {
+		cb = 0;
 		ch = *s;
 	} else if ((*s & 0xE0) == 0xC0) {
+		cb = 1;
 		ch = *s & 0x1F;
-		ch = (ch << 6) | (s[1] & 0x3F);
 	} else if ((*s & 0xF0) == 0xE0) {
+		cb = 2;
 		ch = *s & 0x0F;
-		ch = (ch << 6) | (s[1] & 0x3F);
-		ch = (ch << 6) | (s[2] & 0x3F);
 	} else if ((*s & 0xF8) == 0xF0) {
+		cb = 3;
 		ch = *s & 0x07;
-		ch = (ch << 6) | (s[1] & 0x3F);
-		ch = (ch << 6) | (s[2] & 0x3F);
-		ch = (ch << 6) | (s[3] & 0x3F);
 	} else
 		return UNI_REPL_CHAR;
+
+	for (int i = 0; i < cb; i++) {
+		if ((s[i + 1] & 0xC0) != 0x80)
+			return UNI_REPL_CHAR;
+		ch = (ch << 6) | (s[i + 1] & 0x3F);
+	}
 
 	return ch;
 }
