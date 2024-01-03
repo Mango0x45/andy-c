@@ -44,7 +44,7 @@ rloop(void)
 		if (*(p = utf8trim(line)))
 			add_history((char *)p);
 
-		lexstr(line, &toks);
+		lexstr("<stdin>", line, &toks);
 
 		da_foreach (&toks, tok) {
 			if (tok->kind == LTK_NL && !tok->p)

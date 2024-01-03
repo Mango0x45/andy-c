@@ -3,7 +3,6 @@
 #include <string.h>
 #include <uchar.h>
 
-#include "uni.h"
 #include "utf8.h"
 
 rune
@@ -25,11 +24,11 @@ utf8peek(const char8_t *s)
 		cb = 3;
 		ch = *s & 0x07;
 	} else
-		return UNI_REPL_CHAR;
+		return REPL_CHAR;
 
 	for (int i = 0; i < cb; i++) {
 		if ((s[i + 1] & 0xC0) != 0x80)
-			return UNI_REPL_CHAR;
+			return REPL_CHAR;
 		ch = (ch << 6) | (s[i + 1] & 0x3F);
 	}
 
@@ -50,10 +49,10 @@ utf8trim(char8_t *s)
 	rune ch;
 	char8_t *p;
 
-	s = p = utf8fskip(s, unispace);
+	s = p = utf8fskip(s, risblank);
 
 	while ((ch = utf8next((const char8_t **)&p))) {
-		if (utf8all(p, unispace)) {
+		if (utf8all(p, risblank)) {
 			*p = 0;
 			break;
 		}
@@ -127,4 +126,10 @@ utf8npfx(const char8_t *s, rune ch, size_t mx)
 		n += utf8wdth(ch);
 
 	return n;
+}
+
+bool
+risblank(rune ch)
+{
+	return ch == ' ' || ch == '\t';
 }

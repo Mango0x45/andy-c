@@ -5,7 +5,6 @@
 
 #include "da.h"
 #include "lexer.h"
-#include "uni.h"
 #include "utf8.h"
 
 typedef enum {
@@ -18,24 +17,28 @@ struct lexstates {
 	size_t len, cap;
 };
 
-static char8_t *lexarg(const char8_t *, struct lexstates *);
-static bool in_comment(rune);
-static bool is_arg_char(rune);
+struct lexpos {
+	size_t col; /* 0-based */
+	size_t row; /* 1-based */
+};
+
+static void lexpfw(rune, struct lexpos *);
 
 static const char8_t metachars[] = u8"\"#'(;<>{|‘“";
 
 void
-lexstr(const char8_t *s, struct lextoks *toks)
+lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 {
 	rune ch;
 	struct lexstates ls;
+	struct lexpos lp = {0, 1};
 
 	dainit(&ls, 8);
 	dainit(toks, 64);
 
 	for (const char8_t *p = s; ((ch = utf8next(&p)));) {
-		if (ch == UNI_REPL_CHAR) {
-			warnx("invalid UTF-8 sequence near ‘0x%2X’", *p);
+		if (ch == REPL_CHAR) {
+			warnx("%s: invalid UTF-8 sequence near ‘0x%2X’", file, *p);
 			return;
 		}
 	}
@@ -43,28 +46,34 @@ lexstr(const char8_t *s, struct lextoks *toks)
 	while (*s) {
 		struct lextok tok = {};
 
-		s = utf8fskip(s, unispace);
+		while (risblank(utf8peek(s)))
+			lexpfw(utf8next(&s), &lp);
 
-		/* Set tok to the token of kind k and byte-length w */
+			/* Set tok to the token of kind k and byte-length w */
 #define TOKLIT(w, k) \
 	do { \
-		tok.p = (s); \
-		tok.len = (w); \
-		tok.kind = (k); \
+		tok.p = s; \
+		tok.kind = k; \
+		tok.len = w; \
+		lp.col += w; \
 		s += w; \
 	} while (false)
 
-		/* Assert if we are at the string-literal x */
+			/* Assert if we are at the string-literal x */
 #define ISLIT(x) (!strncmp((char *)s, (x), sizeof(x) - 1))
 
 		ch = utf8peek(s);
 		if (ch == '#') {
-			s = utf8fskip(s, in_comment);
-			continue;
+			if (!(s = utf8chr(s, '\n')))
+				break;
+			lexpfw('\n', &lp);
 		} else if (ch == '|') {
 			TOKLIT(1, LTK_PIPE);
-		} else if (ch == ';' || ch == '\n') {
+		} else if (ch == ';') {
 			TOKLIT(1, LTK_NL);
+		} else if (ch == '\n') {
+			TOKLIT(1, LTK_NL);
+			lexpfw('\n', &lp);
 		} else if (ch == '{') {
 			TOKLIT(1, LTK_BRC_O);
 			dapush(&ls, LS_BRACE);
@@ -129,7 +138,10 @@ lexstr(const char8_t *s, struct lextoks *toks)
 		} else if (ch == '\'') {
 			tok.kind = LTK_STR_RAW;
 			tok.p = ++s;
-			s = utf8chr(s, ch);
+			if (!(s = utf8chr(s, ch))) {
+				warnx("%s:%zu:%zu: Unterminated string", file, lp.row, lp.col);
+				return;
+			}
 			tok.len = s - tok.p;
 			s++;
 		} else if (ch == U'“') {
@@ -165,10 +177,21 @@ lexstr(const char8_t *s, struct lextoks *toks)
 			tok.len = s - tok.p;
 			s++;
 		} else {
-			tok.p = s;
-			s = lexarg(s, &ls);
-			tok.len = s - tok.p;
 			tok.kind = LTK_ARG;
+			tok.p = s;
+
+			while ((ch = utf8peek(s))) {
+				if (utf8chr(metachars, ch) || risblank(ch))
+					break;
+				if (ch == '}' && datopis(&ls, LS_BRACE))
+					break;
+				if (ch == ')' && datopis(&ls, LS_PAREN))
+					break;
+				utf8next(&s);
+				lexpfw(ch, &lp);
+			}
+
+			tok.len = s - tok.p;
 		}
 
 #undef ISLIT
@@ -181,31 +204,12 @@ lexstr(const char8_t *s, struct lextoks *toks)
 	free(ls.buf);
 }
 
-bool
-in_comment(rune ch)
+void
+lexpfw(rune ch, struct lexpos *lp)
 {
-	return ch != '\n' && ch != '\0';
-}
-
-bool
-is_arg_char(rune ch)
-{
-	return !utf8chr(metachars, ch) && !unispace(ch);
-}
-
-char8_t *
-lexarg(const char8_t *s, struct lexstates *ls)
-{
-	rune ch;
-
-	while ((ch = utf8next(&s))) {
-		if (!is_arg_char(ch))
-			break;
-		if (ch == '}' && datopis(ls, LS_BRACE))
-			break;
-		if (ch == ')' && datopis(ls, LS_PAREN))
-			break;
-	}
-
-	return (char8_t *)s - utf8wdth(ch);
+	if (ch == '\n') {
+		lp->col = 0;
+		lp->row++;
+	} else
+		lp->col += utf8wdth(ch);
 }
