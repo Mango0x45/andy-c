@@ -90,15 +90,11 @@ utf8fskip(const char8_t *s, bool (*pfn)(rune))
 int
 utf8wdth(rune ch)
 {
-	if (ch <= 0x7F)
-		return 1;
-	if (ch <= 0x7FF)
-		return 2;
-	if (ch <= 0xFFFF)
-		return 3;
-	if (ch <= 0x10FFFF)
-		return 4;
-	return 0;
+	return ch <= 0x7F     ? 1
+	     : ch <= 0x7FF    ? 2
+	     : ch <= 0xFFFF   ? 3
+	     : ch <= 0x10FFFF ? 4
+	                      : 0;
 }
 
 char8_t *
