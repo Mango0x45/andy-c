@@ -114,17 +114,54 @@ lexstr(const char8_t *s, struct lextoks *toks)
 				s++;
 			}
 		} else if (ch == U'‘') {
-			size_t n = utf8pfx(s, ch);
+			size_t n, m;
+
 			tok.kind = LTK_STR_RAW;
-			tok.p = s += n;
-			while (utf8npfx(s, U'’', n) != n)
+			tok.p = s += n = utf8pfx(s, ch);
+
+			while ((m = utf8npfx(s, U'’', n)) != n) {
+				s += m;
 				utf8next(&s);
+			}
+
 			tok.len = s - tok.p;
 			s += n;
 		} else if (ch == '\'') {
 			tok.kind = LTK_STR_RAW;
 			tok.p = ++s;
 			s = utf8chr(s, ch);
+			tok.len = s - tok.p;
+			s++;
+		} else if (ch == U'“') {
+			size_t n;
+
+			tok.kind = LTK_STR_RAW;
+			tok.p = s += n = utf8pfx(s, ch);
+
+			while ((ch = utf8peek(s))) {
+				if (ch == '\\')
+					s++;
+				else if (ch == U'”') {
+					size_t m = utf8npfx(s, U'”', n);
+					if (n == m)
+						break;
+					s += m;
+				}
+				utf8next(&s);
+			}
+
+			tok.len = s - tok.p;
+			s += n;
+		} else if (ch == '"') {
+			tok.kind = LTK_STR;
+			tok.p = ++s;
+
+			/* It’s safe to treat input as ASCII here */
+			for (; *s != '"'; s++) {
+				if (*s == '\\')
+					s++;
+			}
+
 			tok.len = s - tok.p;
 			s++;
 		} else {
