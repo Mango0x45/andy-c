@@ -6,8 +6,10 @@
 typedef char32_t rune;
 
 /* U+FFFD REPLACEMENT CHARACTER; intended for use when invalid UTF-8 sequences
-   are detected. */
-constexpr rune REPL_CHAR = U'�';
+   are detected.
+
+   TODO: Make constexpr when Clang(d) supports it? */
+#define REPL_CHAR (U'�')
 
 /* Return the first rune in the given null-terminated string.  If an invalid
    byte-sequence is detected, REPL_CHAR is returned. */
