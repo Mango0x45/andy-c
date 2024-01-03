@@ -1,4 +1,5 @@
 #include <err.h>
+#include <langinfo.h>
 #include <stdlib.h>
 #include <string.h>
 #include <uchar.h>
@@ -6,6 +7,8 @@
 #include "da.h"
 #include "lexer.h"
 #include "utf8.h"
+
+#define min(a, b) ((a) < (b) ? (a) : (b))
 
 typedef enum {
 	LS_BRACE, /* In braces */
@@ -23,6 +26,8 @@ struct lexpos {
 };
 
 static void lexpfw(rune, struct lexpos *);
+static void warn_unterminated(const char8_t *, size_t, const char *,
+                              struct lexpos);
 
 static const char8_t metachars[] = u8"\"#'(;<>{|‘“";
 
@@ -122,6 +127,15 @@ lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 				tok.flags = LF_FD;
 				s++;
 			}
+		} else if (ch == '\'') {
+			tok.kind = LTK_STR_RAW;
+			tok.p = ++s;
+			if (!*(s = utf8chrnul(s, ch))) {
+				warn_unterminated(tok.p, s - tok.p, file, lp);
+				return;
+			}
+			tok.len = s - tok.p;
+			s++;
 		} else if (ch == U'‘') {
 			size_t n, m;
 
@@ -130,20 +144,14 @@ lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 
 			while ((m = utf8npfx(s, U'’', n)) != n) {
 				s += m;
-				utf8next(&s);
+				if (!utf8next(&s)) {
+					warn_unterminated(tok.p, s - tok.p, file, lp);
+					return;
+				}
 			}
 
 			tok.len = s - tok.p;
 			s += n;
-		} else if (ch == '\'') {
-			tok.kind = LTK_STR_RAW;
-			tok.p = ++s;
-			if (!(s = utf8chr(s, ch))) {
-				warnx("%s:%zu:%zu: Unterminated string", file, lp.row, lp.col);
-				return;
-			}
-			tok.len = s - tok.p;
-			s++;
 		} else if (ch == U'“') {
 			size_t n;
 
@@ -163,6 +171,10 @@ lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 			}
 
 			tok.len = s - tok.p;
+			if (!ch) {
+				warn_unterminated(tok.p, tok.len, file, lp);
+				return;
+			}
 			s += n;
 		} else if (ch == '"') {
 			tok.kind = LTK_STR;
@@ -170,6 +182,10 @@ lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 
 			/* It’s safe to treat input as ASCII here */
 			for (; *s != '"'; s++) {
+				if (!*s) {
+					warn_unterminated(tok.p, s - tok.p, file, lp);
+					return;
+				}
 				if (*s == '\\')
 					s++;
 			}
@@ -212,4 +228,25 @@ lexpfw(rune ch, struct lexpos *lp)
 		lp->row++;
 	} else
 		lp->col += utf8wdth(ch);
+}
+
+void
+warn_unterminated(const char8_t *s, size_t n, const char *file,
+                  struct lexpos lp)
+{
+	char *oquo, *cquo, *elip;
+	char *cs = nl_langinfo(CODESET);
+
+	if (strcmp(cs, "UTF-8") == 0) {
+		oquo = (char *)u8"‘";
+		cquo = (char *)u8"’";
+		elip = (char *)u8"…";
+	} else {
+		oquo = "`";
+		cquo = "'";
+		elip = "..";
+	}
+
+	warnx("%s:%zu:%zu: Unterminated string %s%.*s%s%s", file, lp.row, lp.col,
+	      oquo, (int)min(n, 12), s, n > 12 ? elip : "", cquo);
 }

@@ -5,6 +5,10 @@
 
 #include "utf8.h"
 
+#if !HAS_STRCHRNUL
+static char *strchrnul(const char *, int);
+#endif
+
 rune
 utf8peek(const char8_t *s)
 {
@@ -111,6 +115,20 @@ utf8chr(const char8_t *haystack, rune needle)
 	return nullptr;
 }
 
+char8_t *
+utf8chrnul(const char8_t *haystack, rune needle)
+{
+	if (needle <= UCHAR_MAX)
+		return (char8_t *)strchrnul((char *)haystack, needle);
+
+	for (rune ch; (ch = utf8next(&haystack));) {
+		if (ch == needle)
+			return (char8_t *)haystack;
+	}
+
+	return nullptr;
+}
+
 size_t
 utf8pfx(const char8_t *s, rune ch)
 {
@@ -133,3 +151,13 @@ risblank(rune ch)
 {
 	return ch == ' ' || ch == '\t';
 }
+
+#if !HAS_STRCHRNUL
+char *
+strchrnul(const char *p, int ch)
+{
+	while (*p && *p != ch)
+		p++;
+	return (char *)p;
+}
+#endif

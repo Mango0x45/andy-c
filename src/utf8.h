@@ -36,8 +36,12 @@ char8_t *utf8fskip(const char8_t *, bool (*)(rune));
 /* Return the number of bytes occupied by the given rune when UTF-8 encoded. */
 int utf8wdth(rune);
 
-/* Just like strchr(), but accepts a rune instead of an int */
-char8_t *utf8chr(const char8_t *haystack, rune needle);
+/* Just like strchr() and strchrnul(), but these functions accept a rune instead
+   of an int.  If the needle fits in a char, these functions will call the more
+   optimal strchr() or strchrnul() functions automatically.  A strchrnul()
+   implementation is provided on systems that do not ship it. */
+char8_t *utf8chr(const char8_t *, rune);
+char8_t *utf8chrnul(const char8_t *, rune);
 
 /* utf8pfx() returns the length of the prefix of the given string in bytes
    consisting of the given rune.  This is similar to strspn() but only accepts

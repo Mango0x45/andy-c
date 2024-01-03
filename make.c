@@ -1,3 +1,12 @@
+#if __has_include(<features.h>)
+#	include <features.h>
+#endif
+
+#if defined(__GLIBC__) || defined(__FreeBSD__) || defined(__NetBSD__) \
+	|| defined(__DragonFly__)
+#	define HAS_STRCHRNUL 1
+#endif
+
 #include <errno.h>
 #include <glob.h>
 #include <libgen.h>
@@ -143,6 +152,14 @@ build(void)
 				cmdadd(&c, CFLAGS_RELEASE);
 			if (streq("src/main.c", src))
 				cmdaddv(&c, v.buf, v.len);
+#if HAS_STRCHRNUL
+			else if (streq("src/utf8.c", src)) {
+				cmdadd(&c, "-DHAS_STRCHRNUL=1");
+#	if __GLIBC__
+				cmdadd(&c, "-D_GNU_SOURCE");
+#	endif
+			}
+#endif
 			cmdadd(&c, "-o", dst, "-c", src);
 			cmdprc(c);
 		}
