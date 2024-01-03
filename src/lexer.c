@@ -1,5 +1,4 @@
 #include <err.h>
-#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 #include <uchar.h>
@@ -23,10 +22,7 @@ static char8_t *lexarg(const char8_t *, struct lexstates *);
 static bool in_comment(rune);
 static bool is_arg_char(rune);
 
-static const bool metachars[CHAR_MAX + 1] = {
-	['#'] = true, ['('] = true, [';'] = true, ['<'] = true,
-	['>'] = true, ['{'] = true, ['|'] = true,
-};
+static const char8_t metachars[] = u8"\"#'(;<>{|‘“";
 
 void
 lexstr(const char8_t *s, struct lextoks *toks)
@@ -143,9 +139,7 @@ in_comment(rune ch)
 bool
 is_arg_char(rune ch)
 {
-	if (ch <= CHAR_MAX && metachars[ch])
-		return false;
-	return !unispace(ch);
+	return !utf8chr(metachars, ch) && !unispace(ch);
 }
 
 char8_t *

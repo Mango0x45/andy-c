@@ -32,4 +32,7 @@ char8_t *utf8fskip(const char8_t *, bool (*)(rune));
 /* Return the number of bytes occupied by the given rune when UTF-8 encoded. */
 int utf8wdth(rune);
 
+/* Just like strchr(), but accepts a rune instead of an int */
+char8_t *utf8chr(const char8_t *haystack, rune needle);
+
 #endif /* !ANDY_UTF8_H */

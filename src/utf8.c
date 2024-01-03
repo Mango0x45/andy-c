@@ -1,3 +1,5 @@
+#include <limits.h>
+#include <string.h>
 #include <uchar.h>
 
 #include "uni.h"
@@ -97,4 +99,18 @@ utf8wdth(rune ch)
 	if (ch <= 0x10FFFF)
 		return 4;
 	return 0;
+}
+
+char8_t *
+utf8chr(const char8_t *haystack, rune needle)
+{
+	if (needle <= CHAR_MAX)
+		return (char8_t *)strchr((char *)haystack, needle);
+
+	for (rune ch; (ch = utf8next(&haystack));) {
+		if (ch == needle)
+			return (char8_t *)haystack;
+	}
+
+	return nullptr;
 }
