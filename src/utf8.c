@@ -1,4 +1,5 @@
 #include <limits.h>
+#include <stdint.h>
 #include <string.h>
 #include <uchar.h>
 
@@ -109,4 +110,21 @@ utf8chr(const char8_t *haystack, rune needle)
 	}
 
 	return nullptr;
+}
+
+size_t
+utf8pfx(const char8_t *s, rune ch)
+{
+	return utf8npfx(s, ch, SIZE_MAX);
+}
+
+size_t
+utf8npfx(const char8_t *s, rune ch, size_t mx)
+{
+	size_t n = 0;
+
+	while (n < mx && (utf8next(&s) == ch))
+		n += utf8wdth(ch);
+
+	return n;
 }

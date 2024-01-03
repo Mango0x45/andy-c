@@ -113,6 +113,20 @@ lexstr(const char8_t *s, struct lextoks *toks)
 				tok.flags = LF_FD;
 				s++;
 			}
+		} else if (ch == U'‘') {
+			size_t n = utf8pfx(s, ch);
+			tok.kind = LTK_STR_RAW;
+			tok.p = s += n;
+			while (utf8npfx(s, U'’', n) != n)
+				utf8next(&s);
+			tok.len = s - tok.p;
+			s += n;
+		} else if (ch == '\'') {
+			tok.kind = LTK_STR_RAW;
+			tok.p = ++s;
+			s = utf8chr(s, ch);
+			tok.len = s - tok.p;
+			s++;
 		} else {
 			tok.p = s;
 			s = lexarg(s, &ls);

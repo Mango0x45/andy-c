@@ -35,4 +35,12 @@ int utf8wdth(rune);
 /* Just like strchr(), but accepts a rune instead of an int */
 char8_t *utf8chr(const char8_t *haystack, rune needle);
 
+/* utf8pfx() returns the length of the prefix of the given string in bytes
+   consisting of the given rune.  This is similar to strspn() but only accepts
+   one rune instead of a string of runes.
+
+   utf8npfx() is the same as utf8pfx() but it only checks the first n bytes. */
+size_t utf8pfx(const char8_t *, rune);
+size_t utf8npfx(const char8_t *, rune, size_t n);
+
 #endif /* !ANDY_UTF8_H */

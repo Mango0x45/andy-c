@@ -10,15 +10,17 @@ typedef enum {
 	LTK_NL,       /* End of statement */
 	LTK_PIPE,     /* Pipe */
 	LTK_PRC_RD,   /* Process reading redirection */
+	LTK_PRC_RDWR, /* Process reading- and writing redirection */
 	LTK_PRC_SUB,  /* Process substitution */
 	LTK_PRC_WR,   /* Process writing redirection */
-	LTK_PRC_RDWR, /* Process reading- and writing redirection */
 	LTK_PRN_C,    /* Closing parenthesis */
 	LTK_PRN_O,    /* Opening parenthesis */
 	LTK_RDR_APP,  /* Appending redirection */
 	LTK_RDR_CLB,  /* Clobbering redirection */
 	LTK_RDR_RD,   /* Reading redirection */
 	LTK_RDR_WR,   /* Writing redirection */
+	LTK_STR_RAW,  /* Raw string */
+	LTK_STR,      /* String */
 } lex_token_kind_t;
 
 typedef enum {
