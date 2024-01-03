@@ -100,7 +100,7 @@ utf8wdth(rune ch)
 char8_t *
 utf8chr(const char8_t *haystack, rune needle)
 {
-	if (needle <= CHAR_MAX)
+	if (needle <= UCHAR_MAX)
 		return (char8_t *)strchr((char *)haystack, needle);
 
 	for (rune ch; (ch = utf8next(&haystack));) {
