@@ -150,6 +150,9 @@ build(void)
 				cmdadd(&c, CFLAGS_DEBUG);
 			else
 				cmdadd(&c, CFLAGS_RELEASE);
+#ifdef __APPLE__
+			cmdadd(&c, "-Isrc/compat");
+#endif
 			if (streq("src/main.c", src))
 				cmdaddv(&c, v.buf, v.len);
 #if HAS_STRCHRNUL
