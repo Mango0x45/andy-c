@@ -588,15 +588,26 @@ int
 fmdcmp(const char *lhs, const char *rhs)
 {
 	struct stat sbl, sbr;
+	struct timespec tsl, tsr;
 
 	if (stat(lhs, &sbl) == -1)
 		die("%s", lhs);
 	if (stat(rhs, &sbr) == -1)
 		die("%s", rhs);
 
-	return sbl.st_mtim.tv_sec == sbr.st_mtim.tv_sec
-	         ? sbl.st_mtim.tv_nsec - sbr.st_mtim.tv_nsec
-	         : sbl.st_mtim.tv_sec - sbr.st_mtim.tv_sec;
+#if defined(__linux__)
+	tsl = sbl.st_mtim;
+	tsr = sbr.st_mtim;
+#elif defined(__APPLE__)
+	tsl = sbl.st_mtimespec;
+	tsr = sbr.st_mtimespec;
+#else /* TODO: Support the BSDs */
+#	error "fmdcmp() not implemented for this system"
+#endif
+
+	return tsl.tv_sec == tsr.tv_sec
+	         ? tsl.tv_nsec - tsr.tv_nsec
+	         : tsl.tv_sec - tsr.tv_sec;
 }
 
 bool
