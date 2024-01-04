@@ -50,6 +50,9 @@
 #	error "Non-POSIX platform detected"
 #endif
 
+/* Required for st_mtim */
+#define _POSIX_C_SOURCE 200809L
+
 #include <sys/stat.h>
 #include <sys/wait.h>
 
@@ -595,15 +598,8 @@ fmdcmp(const char *lhs, const char *rhs)
 	if (stat(rhs, &sbr) == -1)
 		die("%s", rhs);
 
-#if defined(__linux__)
 	tsl = sbl.st_mtim;
 	tsr = sbr.st_mtim;
-#elif defined(__APPLE__)
-	tsl = sbl.st_mtimespec;
-	tsr = sbr.st_mtimespec;
-#else /* TODO: Support the BSDs */
-#	error "fmdcmp() not implemented for this system"
-#endif
 
 	return tsl.tv_sec == tsr.tv_sec
 	         ? tsl.tv_nsec - tsr.tv_nsec
