@@ -150,9 +150,12 @@ build(void)
 				cmdadd(&c, CFLAGS_DEBUG);
 			else
 				cmdadd(&c, CFLAGS_RELEASE);
-#ifdef __APPLE__
+
+			/* <uchar.h> is part of C11 but Apple doesn’t provide it. */
+#if !__has_include(<uchar.h>)
 			cmdadd(&c, "-Isrc/compat");
 #endif
+
 			if (streq("src/main.c", src))
 				cmdaddv(&c, v.buf, v.len);
 #if HAS_STRCHRNUL
