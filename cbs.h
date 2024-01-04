@@ -37,6 +37,11 @@
 #ifndef C_BUILD_SYSTEM_H
 #define C_BUILD_SYSTEM_H
 
+#ifdef __GNUC__
+#	pragma GCC diagnostic push
+#	pragma GCC diagnostic ignored "-Wunused-function"
+#endif
+
 /* Assert that the user is building for a supported platform.  The only portable
    way to check for POSIX is to validate that unistd.h exists.  This is only
    possible without compiler extensions in C23 (although some compilers support
@@ -591,19 +596,15 @@ int
 fmdcmp(const char *lhs, const char *rhs)
 {
 	struct stat sbl, sbr;
-	struct timespec tsl, tsr;
 
 	if (stat(lhs, &sbl) == -1)
 		die("%s", lhs);
 	if (stat(rhs, &sbr) == -1)
 		die("%s", rhs);
 
-	tsl = sbl.st_mtim;
-	tsr = sbr.st_mtim;
-
-	return tsl.tv_sec == tsr.tv_sec
-	         ? tsl.tv_nsec - tsr.tv_nsec
-	         : tsl.tv_sec - tsr.tv_sec;
+	return sbl.st_mtim.tv_sec == sbr.st_mtim.tv_sec
+	         ? sbl.st_mtim.tv_nsec - sbr.st_mtim.tv_nsec
+	         : sbl.st_mtim.tv_sec - sbr.st_mtim.tv_sec;
 }
 
 bool
@@ -878,5 +879,9 @@ tpwait(tpool_t *tp)
 }
 
 #endif /* CBS_PTHREAD */
+
+#ifdef __GNUC__
+#	pragma GCC diagnostic pop
+#endif
 
 #endif /* !C_BUILD_SYSTEM_H */
