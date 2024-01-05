@@ -4,8 +4,8 @@
 #endif
 #include <uchar.h>
 
-#include "unreachable.h"
 #include "utf8.h"
+#include "util.h"
 
 #define ASCII_MAX (0x7F)
 
@@ -148,7 +148,7 @@ rwdth(rune ᚱ)
 }
 
 bool
-risblank(rune ᚱ)
+risbndry(rune ᚱ)
 {
-	return ᚱ == ' ' || ᚱ == '\t';
+	return ᚱ == ' ' || ᚱ == '\t' || ᚱ == '\0';
 }

@@ -1,5 +1,5 @@
-#ifndef ANDY_UNREACHABLE_H
-#define ANDY_UNREACHABLE_H
+#ifndef ANDY_UTIL_H
+#define ANDY_UTIL_H
 
 /* In release builds we want to make use of the optimization benefits of
    unreachable(), but in debug builds we should print error messages on failure
@@ -16,4 +16,7 @@
 #	include <stddef.h>
 #endif
 
-#endif /* !ANDY_UNREACHABLE_H */
+/* Classic min() macro */
+#define min(α, β) ((α) < (β) ? (α) : (β))
+
+#endif /* !ANDY_UTIL_H */

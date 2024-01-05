@@ -7,8 +7,9 @@
 #include "da.h"
 #include "lexer.h"
 #include "utf8.h"
+#include "util.h"
 
-#define min(a, b) ((a) < (b) ? (a) : (b))
+#define SPECIAL WHITESPACE u8"\"#$'();<>{}|‘“"
 
 typedef enum {
 	LS_BRACE, /* In braces */
@@ -28,8 +29,6 @@ struct lexpos {
 static void lexpfw(rune, struct lexpos *);
 static void warn_unterminated(const char8_t *, size_t, const char *,
                               struct lexpos);
-
-static const char8_t special[] = WHITESPACE u8"\"#'();<>{}|‘“";
 
 void
 lexstr(const char *file, const char8_t *s, struct lextoks *toks)
@@ -54,10 +53,10 @@ lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 #define TOKLIT(w, k) \
 	do { \
 		tok.p = s; \
-		tok.kind = k; \
-		tok.len = w; \
-		lp.col += w; \
-		s += w; \
+		tok.kind = (k); \
+		tok.len = (w); \
+		lp.col += (w); \
+		s += (w); \
 	} while (false)
 
 		/* Assert if we are at the string-literal x */
@@ -100,30 +99,36 @@ lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 		} else if (ISLIT("<>{")) {
 			TOKLIT(3, LTK_PRC_RDWR);
 			dapush(&ls, LS_BRACE);
+
+#define CHK_FD_FLAG \
+	do { \
+		if (*s == '&') { \
+			tok.rf.fd = true; \
+			s++; \
+		} \
+	} while (false)
+
 		} else if (ISLIT(">>")) {
-			TOKLIT(2, LTK_RDR_APP);
-			if (*s == '&') {
-				tok.flags = LF_FD;
-				s++;
-			}
+			TOKLIT(2, LTK_RDR);
+			tok.rf.app = true;
+			tok.rf.clb = true;
+			CHK_FD_FLAG;
 		} else if (ISLIT(">!")) {
-			TOKLIT(2, LTK_RDR_CLB);
-			if (*s == '&') {
-				tok.flags = LF_FD;
-				s++;
-			}
+			TOKLIT(2, LTK_RDR);
+			tok.rf.wr = true;
+			tok.rf.clb = true;
+			CHK_FD_FLAG;
 		} else if (ᚱ == '>') {
-			TOKLIT(1, LTK_RDR_RD);
-			if (*s == '&') {
-				tok.flags = LF_FD;
-				s++;
-			}
+			TOKLIT(1, LTK_RDR);
+			tok.rf.wr = true;
+			CHK_FD_FLAG;
 		} else if (ᚱ == '<') {
-			TOKLIT(1, LTK_RDR_WR);
-			if (*s == '&') {
-				tok.flags = LF_FD;
-				s++;
-			}
+			TOKLIT(1, LTK_RDR);
+			tok.rf.rd = true;
+			CHK_FD_FLAG;
+
+#undef CHK_FD_FLAG
+
 		} else if (ᚱ == '\'') {
 			tok.kind = LTK_STR_RAW;
 			tok.p = ++s;
@@ -192,14 +197,31 @@ lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 
 			tok.len = s - tok.p;
 			s++;
+		} else if (ISLIT("$#")) {
+			if (risbndry(c8tor(s + 2)))
+				TOKLIT(2, LTK_ARG);
+			else {
+				TOKLIT(2, LTK_VAR);
+				tok.vf.len = true;
+			}
+		} else if (ISLIT("$^")) {
+			if (risbndry(c8tor(s + 2)))
+				TOKLIT(2, LTK_ARG);
+			else {
+				TOKLIT(2, LTK_VAR);
+				tok.vf.cc = true;
+			}
+		} else if (ᚱ == '$') {
+			TOKLIT(1, risbndry(c8tor(s + 1)) ? LTK_ARG : LTK_VAR);
 		} else {
 			tok.kind = LTK_ARG;
 			tok.p = s;
 
-			while (*(s = c8pbrknul(s, special))) {
+			while (*(s = c8pbrknul(s, SPECIAL))) {
 				ᚱ = c8tor(s);
 				if ((ᚱ == '}' && !datopis(&ls, LS_BRACE))
-				    || (ᚱ == ')' && !datopis(&ls, LS_PAREN)))
+				    || (ᚱ == ')' && !datopis(&ls, LS_PAREN))
+				    || (ᚱ == '$' && risbndry(c8tor(c8fwd(s)))))
 				{
 					s = c8fwd(s);
 					continue;

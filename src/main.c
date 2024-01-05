@@ -9,6 +9,7 @@
 
 #include "da.h"
 #include "lexer.h"
+#include "repr.h"
 
 static bool interactive;
 
@@ -47,16 +48,8 @@ rloop(void)
 		add_history(p);
 		lexstr("<stdin>", (char8_t *)p, &toks);
 
-		da_foreach (&toks, tok) {
-			if (tok->kind == LTK_NL && !tok->p)
-				puts("EOF");
-			else {
-				printf("token: ‘%.*s’", (int)tok->len, tok->p);
-				if (tok->flags & LF_FD)
-					printf("; flags: LS_FD");
-				putchar('\n');
-			}
-		}
+		da_foreach (&toks, tok)
+			repr(*tok);
 
 		free(toks.buf);
 empty:

@@ -15,22 +15,32 @@ typedef enum {
 	LTK_PRC_WR,   /* Process writing redirection */
 	LTK_PRN_C,    /* Closing parenthesis */
 	LTK_PRN_O,    /* Opening parenthesis */
-	LTK_RDR_APP,  /* Appending redirection */
-	LTK_RDR_CLB,  /* Clobbering redirection */
-	LTK_RDR_RD,   /* Reading redirection */
-	LTK_RDR_WR,   /* Writing redirection */
+	LTK_RDR,      /* Redirection */
 	LTK_STR_RAW,  /* Raw string */
 	LTK_STR,      /* String */
+	LTK_VAR,      /* Variable reference */
 } lex_token_kind_t;
 
-typedef enum {
-	LF_FD = 1 << 0,
-} lex_tokflags_t;
+struct lex_rdr_flags {
+	bool app : 1; /* Append */
+	bool clb : 1; /* Clobber */
+	bool fd  : 1; /* ‘&’ suffix */
+	bool rd  : 1; /* Read */
+	bool wr  : 1; /* Write */
+};
+
+struct lex_var_flags {
+	bool cc  : 1; /* ‘^’ concatination flag */
+	bool len : 1; /* ‘#’ length flag */
+};
 
 struct lextok {
 	const char8_t *p;
 	size_t len;
-	int flags;
+	union {
+		struct lex_rdr_flags rf;
+		struct lex_var_flags vf;
+	};
 	lex_token_kind_t kind;
 };
 

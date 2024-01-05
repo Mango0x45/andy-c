@@ -51,8 +51,9 @@ rune c8tor(const char8_t *);
 /* Return the UTF-8-encoded size of the given rune in bytes. */
 [[unsequenced]] size_t rwdth(rune);
 
-/* Return whether the given rune is a space or a tab. */
-[[unsequenced]] bool risblank(rune);
+/* Return whether the given rune is a boundary character.  These are classified
+   as being either a space, a tab, or a null-byte. */
+[[unsequenced]] bool risbndry(rune);
 
 #ifdef __GNUC__
 #	pragma GCC diagnostic pop
