@@ -28,7 +28,6 @@ repr_lextok(struct lextok lt, int d)
 
 	eprintf("lextok {\n");
 
-	// eiprintf(d + 1, ".p    = ‘%.*s’\n", (int)lt.len, lt.p);
 	eiprintf(d + 1, ".p    = ");
 	for (const char8_t *s = lt.p; (size_t)(s - lt.p) < lt.len; s = c8fwd(s)) {
 		rune ᚱ = c8tor(s);
