@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <uchar.h>
 
 #include "lexer.h"
 #include "repr.h"
