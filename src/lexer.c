@@ -29,7 +29,7 @@ static void lexpfw(rune, struct lexpos *);
 static void warn_unterminated(const char8_t *, size_t, const char *,
                               struct lexpos);
 
-static const char8_t metachars[] = u8"\"#'(;<>{|‘“";
+static const char8_t special[] = WHITESPACE u8"\"#'();<>{}|‘“";
 
 void
 lexstr(const char *file, const char8_t *s, struct lextoks *toks)
@@ -196,15 +196,15 @@ lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 			tok.kind = LTK_ARG;
 			tok.p = s;
 
-			while ((ᚱ = c8tor(s))) {
-				if (*c8chrnul(metachars, ᚱ) || risblank(ᚱ))
-					break;
-				if (ᚱ == '}' && datopis(&ls, LS_BRACE))
-					break;
-				if (ᚱ == ')' && datopis(&ls, LS_PAREN))
-					break;
-				s = c8fwd(s);
-				lexpfw(ᚱ, &lp);
+			while (*(s = c8pbrknul(s, special))) {
+				ᚱ = c8tor(s);
+				if ((ᚱ == '}' && !datopis(&ls, LS_BRACE))
+				    || (ᚱ == ')' && !datopis(&ls, LS_PAREN)))
+				{
+					s = c8fwd(s);
+					continue;
+				}
+				break;
 			}
 
 			tok.len = s - tok.p;

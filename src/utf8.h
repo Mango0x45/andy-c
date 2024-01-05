@@ -7,8 +7,7 @@
 
 #include <uchar.h>
 
-/* TODO: Remove cast when Clangd supports u8 properly */
-#define WHITESPACE ((char8_t *)u8" \t")
+#define WHITESPACE u8" \t"
 
 typedef char32_t rune;
 
