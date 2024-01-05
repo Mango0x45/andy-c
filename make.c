@@ -98,7 +98,7 @@ main(int argc, char **argv)
 		} else if (streq("includes", *argv)) {
 			cmd_t c = {};
 			cmdadd(&c, "find", "src", "-name", "*.c", "-exec",
-			       "include-what-you-use", "-std=c2x", "{}", ";");
+			       "include-what-you-use", "-std=c2x", "-DDEBUG", "{}", ";");
 			cmdprc(c);
 		} else {
 			fprintf(stderr, "%s: invalid subcommand -- '%s'\n", argv0, *argv);
@@ -153,7 +153,7 @@ build(void)
 			else
 				cmdadd(&c, CFLAGS_RELEASE);
 
-			/* <uchar.h> is part of C11 but Apple doesn’t provide it. */
+				/* <uchar.h> is part of C11 but Apple doesn’t provide it. */
 #if !__has_include(<uchar.h>)
 			cmdadd(&c, "-Isrc/compat");
 #endif

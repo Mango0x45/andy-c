@@ -9,9 +9,6 @@
 
 #include "da.h"
 #include "lexer.h"
-#include "utf8.h"
-
-#include "unreachable.h"
 
 static bool interactive;
 

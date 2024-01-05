@@ -1,7 +1,7 @@
-#include <stddef.h>
 #include <stdint.h>
-#include <stdio.h>
-#include <string.h>
+#if HAS_STRCHRNUL
+#	include <string.h>
+#endif
 #include <uchar.h>
 
 #include "unreachable.h"
