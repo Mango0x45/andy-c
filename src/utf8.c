@@ -96,9 +96,9 @@ c8pbrknul(const char8_t *s, const char8_t *accept)
 }
 
 char8_t *
-c8pcbrknul(const char8_t *s, const char8_t *accept)
+c8pcbrknul(const char8_t *s, const char8_t *reject)
 {
-	for (rune ᚱ; (ᚱ = c8tor(s)) && *c8chrnul(accept, ᚱ); s = c8fwd(s))
+	for (rune ᚱ; (ᚱ = c8tor(s)) && *c8chrnul(reject, ᚱ); s = c8fwd(s))
 		;
 	return (char8_t *)s;
 }
