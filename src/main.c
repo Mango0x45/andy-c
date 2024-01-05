@@ -71,12 +71,9 @@ strtrim(char *s)
 
 	while (*s == ' ' || *s == '\t')
 		s++;
-
-	e = s;
 	for (e = s; *e; e++)
 		;
 	e--;
-
 	while (e >= s && (*e == ' ' || *e == '\t'))
 		e--;
 	e[1] = 0;
