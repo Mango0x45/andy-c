@@ -67,26 +67,23 @@ char8_t *
 c8fwd(const char8_t *s)
 {
 	if (U1(*s))
-		s += 1;
-	else if (U2(*s))
-		s += 2;
-	else if (U3(*s))
-		s += 3;
-	else if (U4(*s))
-		s += 4;
-	else
-		unreachable();
-	return (char8_t *)s;
+		return (char8_t *)s + 1;
+	if (U2(*s))
+		return (char8_t *)s + 2;
+	if (U3(*s))
+		return (char8_t *)s + 3;
+	if (U4(*s))
+		return (char8_t *)s + 4;
+	unreachable();
 }
 
 char8_t *
 c8chrnul(const char8_t *s, rune ᚱ)
 {
-	rune ᚹ;
 	if (ᚱ <= ASCII_MAX)
 		return (char8_t *)strchrnul((char *)s, ᚱ);
-	while ((ᚹ = c8tor(s)) && ᚹ != ᚱ)
-		s = c8fwd(s);
+	for (rune ᚹ; (ᚹ = c8tor(s)) && ᚹ != ᚱ; s = c8fwd(s))
+		;
 	return (char8_t *)s;
 }
 
@@ -116,7 +113,7 @@ size_t
 c8nrspn(const char8_t *s, rune ᚱ, size_t n)
 {
 	const char8_t *p = s;
-	while ((size_t)(p - s) < n && (c8tor(p) == ᚱ))
+	while ((size_t)(p - s) < n && c8tor(p) == ᚱ)
 		p = c8fwd(p);
 	return p - s;
 }
