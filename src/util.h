@@ -16,7 +16,8 @@
 #	include <stddef.h>
 #endif
 
-/* Classic min() macro */
+/* Classic min and max macros */
 #define min(α, β) ((α) < (β) ? (α) : (β))
+#define max(α, β) ((α) > (β) ? (α) : (β))
 
 #endif /* !ANDY_UTIL_H */
