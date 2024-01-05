@@ -152,9 +152,3 @@ risblank(rune ᚱ)
 {
 	return ᚱ == ' ' || ᚱ == '\t';
 }
-
-#undef U5
-#undef U4
-#undef U3
-#undef U2
-#undef U1
