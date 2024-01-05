@@ -150,5 +150,5 @@ rwdth(rune ᚱ)
 bool
 risbndry(rune ᚱ)
 {
-	return ᚱ == ' ' || ᚱ == '\t' || ᚱ == '\0';
+	return ᚱ == ' ' || ᚱ == '\t' || ᚱ == '\n' || ᚱ == '\0';
 }

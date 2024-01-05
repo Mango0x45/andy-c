@@ -9,7 +9,7 @@
 #include "utf8.h"
 #include "util.h"
 
-#define SPECIAL WHITESPACE u8"\"#$'();<>{}|‘“"
+#define SPECIAL WHITESPACE u8"\n\"#$'();<>{}|‘“"
 
 typedef enum {
 	LS_BRACE, /* In braces */
