@@ -11,8 +11,11 @@
 #include "lexer.h"
 #include "utf8.h"
 
+#include "unreachable.h"
+
 static bool interactive;
 
+static char *strtrim(char *);
 static void rloop(void);
 
 int
@@ -33,18 +36,18 @@ void
 rloop(void)
 {
 	for (;;) {
-		char8_t *p, *line;
+		char *p, *line;
 		struct lextoks toks;
 
-		if (!(line = (char8_t *)readline("=> "))) {
+		if (!(line = readline("=> "))) {
 			fputs("^D\n", stderr);
 			break;
 		}
 
-		if (*(p = utf8trim(line)))
+		if (*(p = strtrim(line)))
 			add_history((char *)p);
 
-		lexstr("<stdin>", line, &toks);
+		lexstr("<stdin>", (char8_t *)line, &toks);
 
 		da_foreach (&toks, tok) {
 			if (tok->kind == LTK_NL && !tok->p)
@@ -60,4 +63,24 @@ rloop(void)
 		free(line);
 		free(toks.buf);
 	}
+}
+
+char *
+strtrim(char *s)
+{
+	char *e;
+
+	while (*s == ' ' || *s == '\t')
+		s++;
+
+	e = s;
+	for (e = s; *e; e++)
+		;
+	e--;
+
+	while (e >= s && (*e == ' ' || *e == '\t'))
+		e--;
+	e[1] = 0;
+
+	return s;
 }

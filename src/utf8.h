@@ -1,65 +1,62 @@
+/* General UTF-8 string-handling functions.  Effectively all of these functions
+   assume well-formed input and will likely trigger undefined behavior on
+   invalid UTF-8.  The main exception is c8chk(). */
+
 #ifndef ANDY_UTF8_H
 #define ANDY_UTF8_H
 
 #include <uchar.h>
 
+/* TODO: Remove cast when Clangd supports u8 properly */
+#define WHITESPACE ((char8_t *)u8" \t")
+
 typedef char32_t rune;
 
-/* U+FFFD REPLACEMENT CHARACTER; intended for use when invalid UTF-8 sequences
-   are detected.
+/* Returns a pointer to the first occurance of ᚱ in the given string, or the
+   terminating nul-byte if no match was found. */
+char8_t *c8chrnul(const char8_t *, rune ᚱ);
 
-   TODO: Make constexpr when Clang(d) supports it? */
-#define REPL_CHAR (U'�')
+/* c8pbrknul() returns a pointer to the first occurance of any of the runes in
+   accept in s, or the trailing nul-byte if no match was found.
 
-/* Return the first rune in the given null-terminated string.  If an invalid
-   byte-sequence is detected, REPL_CHAR is returned. */
-rune utf8peek(const char8_t *);
+   c8pcbrknul() is the complement to c8pbrknul(), and returns a pointer to the
+   first occurance of any rune that is not contained in reject, or the trailing
+   nul-byte if no match was found. */
+char8_t *c8pbrknul(const char8_t *s, const char8_t *accept);
+char8_t *c8pcbrknul(const char8_t *s, const char8_t *reject);
 
-/* Return the first rune in the null-terminated string pointed to by the given
-   pointer, and increment the given string to point to the next rune in the
-   string.  If an invalid byte-sequence is detected, REPL_CHAR is returned.
- */
-rune utf8next(const char8_t **);
+/* Returns a pointer to the first byte of the first invalid UTF-8 sequence in
+   the given string.  If the given string is valid UTF-8, NULL is returned. */
+char8_t *c8chk(const char8_t *);
 
-/* Remove leading- and trailing-whitespace from the given string, and return a
-   pointer to the beginning of the string.  This function destructively modifies
-   the input string, and the return value does not need to equal the input
-   pointer. */
-char8_t *utf8trim(char8_t *);
+/* Returns a pointer to the next rune in the given string. */
+char8_t *c8fwd(const char8_t *);
 
-/* Return whether the given predicate function returns true for all runes in the
-   given string. */
-bool utf8all(const char8_t *, bool (*)(rune));
+/* c8rspn() returns the length in bytes of the prefix of the given string that
+   is composed entirely of the rune ᚱ.
 
-/* Return a pointer to first rune in the given string for which the given
-   predicate function is false. */
-char8_t *utf8fskip(const char8_t *, bool (*)(rune));
+   c8nrspn() works just like c8rspn() but it stops either at the first non-ᚱ
+   rune, or when the prefix-length is greater-than or equal-to n. */
+size_t c8rspn(const char8_t *, rune ᚱ);
+size_t c8nrspn(const char8_t *, rune ᚱ, size_t n);
 
-/* Return the number of bytes occupied by the given rune when UTF-8 encoded. */
-int utf8wdth(rune);
-
-/* Just like strchr() and strchrnul(), but these functions accept a rune instead
-   of an int.  If the needle fits in a char, these functions will call the more
-   optimal strchr() or strchrnul() functions automatically.  A strchrnul()
-   implementation is provided on systems that do not ship it. */
-char8_t *utf8chr(const char8_t *, rune);
-char8_t *utf8chrnul(const char8_t *, rune);
-
-/* utf8pfx() returns the length of the prefix of the given string in bytes
-   consisting of the given rune.  This is similar to strspn() but only accepts
-   one rune instead of a string of runes.
-
-   utf8npfx() is the same as utf8pfx() but it only checks the first n bytes. */
-size_t utf8pfx(const char8_t *, rune);
-size_t utf8npfx(const char8_t *, rune, size_t n);
+/* Returns the first rune in the given string. */
+rune c8tor(const char8_t *);
 
 /* TODO: Remove these pragmas once GCC properly supports [[unsequenced]] */
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wattributes"
+#ifdef __GNUC__
+#	pragma GCC diagnostic push
+#	pragma GCC diagnostic ignored "-Wattributes"
+#endif
 
-/* Just like isblank() from ctype.h but for runes. */
+/* Return the UTF-8-encoded size of the given rune in bytes. */
+[[unsequenced]] size_t rwdth(rune);
+
+/* Return whether the given rune is a space or a tab. */
 [[unsequenced]] bool risblank(rune);
 
-#pragma GCC diagnostic pop
+#ifdef __GNUC__
+#	pragma GCC diagnostic pop
+#endif
 
 #endif /* !ANDY_UTF8_H */

@@ -34,27 +34,23 @@ static const char8_t metachars[] = u8"\"#'(;<>{|‘“";
 void
 lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 {
-	rune ch;
+	rune ᚱ;
+	char8_t *p;
 	struct lexstates ls;
 	struct lexpos lp = {0, 1};
 
 	dainit(&ls, 8);
 	dainit(toks, 64);
 
-	for (const char8_t *p = s; ((ch = utf8next(&p)));) {
-		if (ch == REPL_CHAR) {
-			warnx("%s: invalid UTF-8 sequence near ‘0x%2X’", file, *p);
-			return;
-		}
+	if ((p = c8chk(s))) {
+		warnx("%s: invalid UTF-8 sequence beginning with ‘0x%2X’", file, *p);
+		return;
 	}
 
-	while (*s) {
+	while (*(s = c8pcbrknul(s, WHITESPACE))) {
 		struct lextok tok = {};
 
-		while (risblank(utf8peek(s)))
-			lexpfw(utf8next(&s), &lp);
-
-			/* Set tok to the token of kind k and byte-length w */
+		/* Set tok to the token of kind k and byte-length w */
 #define TOKLIT(w, k) \
 	do { \
 		tok.p = s; \
@@ -64,31 +60,32 @@ lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 		s += w; \
 	} while (false)
 
-			/* Assert if we are at the string-literal x */
+		/* Assert if we are at the string-literal x */
 #define ISLIT(x) (!strncmp((char *)s, (x), sizeof(x) - 1))
 
-		ch = utf8peek(s);
-		if (ch == '#') {
-			if (!(s = utf8chr(s, '\n')))
+		ᚱ = c8tor(s);
+		if (ᚱ == '#') {
+			if (!*(s = c8chrnul(s, '\n')))
 				break;
 			lexpfw('\n', &lp);
-		} else if (ch == '|') {
-			TOKLIT(1, LTK_PIPE);
-		} else if (ch == ';') {
 			TOKLIT(1, LTK_NL);
-		} else if (ch == '\n') {
+		} else if (ᚱ == '|') {
+			TOKLIT(1, LTK_PIPE);
+		} else if (ᚱ == ';') {
+			TOKLIT(1, LTK_NL);
+		} else if (ᚱ == '\n') {
 			TOKLIT(1, LTK_NL);
 			lexpfw('\n', &lp);
-		} else if (ch == '{') {
+		} else if (ᚱ == '{') {
 			TOKLIT(1, LTK_BRC_O);
 			dapush(&ls, LS_BRACE);
-		} else if (ch == '(') {
+		} else if (ᚱ == '(') {
 			TOKLIT(1, LTK_PRN_O);
 			dapush(&ls, LS_PAREN);
-		} else if (ch == '}' && datopis(&ls, LS_BRACE)) {
+		} else if (ᚱ == '}' && datopis(&ls, LS_BRACE)) {
 			TOKLIT(1, LTK_BRC_C);
 			ls.len--;
-		} else if (ch == ')' && datopis(&ls, LS_PAREN)) {
+		} else if (ᚱ == ')' && datopis(&ls, LS_PAREN)) {
 			TOKLIT(1, LTK_PRN_C);
 			ls.len--;
 		} else if (ISLIT("`{")) {
@@ -115,68 +112,71 @@ lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 				tok.flags = LF_FD;
 				s++;
 			}
-		} else if (ch == '>') {
+		} else if (ᚱ == '>') {
 			TOKLIT(1, LTK_RDR_RD);
 			if (*s == '&') {
 				tok.flags = LF_FD;
 				s++;
 			}
-		} else if (ch == '<') {
+		} else if (ᚱ == '<') {
 			TOKLIT(1, LTK_RDR_WR);
 			if (*s == '&') {
 				tok.flags = LF_FD;
 				s++;
 			}
-		} else if (ch == '\'') {
+		} else if (ᚱ == '\'') {
 			tok.kind = LTK_STR_RAW;
 			tok.p = ++s;
-			if (!*(s = utf8chrnul(s, ch))) {
+			if (!*(s = c8chrnul(s, ᚱ))) {
 				warn_unterminated(tok.p, s - tok.p, file, lp);
 				return;
 			}
 			tok.len = s - tok.p;
 			s++;
-		} else if (ch == U'‘') {
-			size_t n, m;
+		} else if (ᚱ == U'‘') {
+			size_t n;
 
 			tok.kind = LTK_STR_RAW;
-			tok.p = s += n = utf8pfx(s, ch);
+			tok.p = s += n = c8rspn(s, U'‘');
 
-			while ((m = utf8npfx(s, U'’', n)) != n) {
-				s += m;
-				if (!utf8next(&s)) {
+			for (;;) {
+				size_t m;
+				if (!*(s = c8chrnul(s, U'’'))) {
 					warn_unterminated(tok.p, s - tok.p, file, lp);
 					return;
 				}
+				if ((m = c8nrspn(s, U'’', n)) == n)
+					break;
+				s += m;
 			}
 
 			tok.len = s - tok.p;
 			s += n;
-		} else if (ch == U'“') {
+		} else if (ᚱ == U'“') {
 			size_t n;
 
 			tok.kind = LTK_STR_RAW;
-			tok.p = s += n = utf8pfx(s, ch);
+			tok.p = s += n = c8rspn(s, ᚱ);
 
-			while ((ch = utf8peek(s))) {
-				if (ch == '\\')
+			while ((ᚱ = c8tor(s))) {
+				if (ᚱ == '\\')
 					s++;
-				else if (ch == U'”') {
-					size_t m = utf8npfx(s, U'”', n);
+				else if (ᚱ == U'”') {
+					size_t m = c8nrspn(s, U'”', n);
 					if (n == m)
 						break;
 					s += m;
 				}
-				utf8next(&s);
+				s = c8fwd(s);
 			}
 
 			tok.len = s - tok.p;
-			if (!ch) {
+			if (!ᚱ) {
 				warn_unterminated(tok.p, tok.len, file, lp);
 				return;
 			}
 			s += n;
-		} else if (ch == '"') {
+		} else if (ᚱ == '"') {
 			tok.kind = LTK_STR;
 			tok.p = ++s;
 
@@ -196,15 +196,15 @@ lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 			tok.kind = LTK_ARG;
 			tok.p = s;
 
-			while ((ch = utf8peek(s))) {
-				if (utf8chr(metachars, ch) || risblank(ch))
+			while ((ᚱ = c8tor(s))) {
+				if (*c8chrnul(metachars, ᚱ) || risblank(ᚱ))
 					break;
-				if (ch == '}' && datopis(&ls, LS_BRACE))
+				if (ᚱ == '}' && datopis(&ls, LS_BRACE))
 					break;
-				if (ch == ')' && datopis(&ls, LS_PAREN))
+				if (ᚱ == ')' && datopis(&ls, LS_PAREN))
 					break;
-				utf8next(&s);
-				lexpfw(ch, &lp);
+				s = c8fwd(s);
+				lexpfw(ᚱ, &lp);
 			}
 
 			tok.len = s - tok.p;
@@ -227,7 +227,7 @@ lexpfw(rune ch, struct lexpos *lp)
 		lp->col = 0;
 		lp->row++;
 	} else
-		lp->col += utf8wdth(ch);
+		lp->col += rwdth(ch);
 }
 
 void

@@ -17,9 +17,11 @@
 
 #include "cbs.h"
 
-#define CC           "cc"
-#define CFLAGS       "-Wall", "-Wextra", "-Wpedantic", "-std=c2x", "-pipe"
-#define CFLAGS_DEBUG "-g", "-ggdb3"
+#define CC "cc"
+#define CFLAGS \
+	"-Wall", "-Wextra", "-Wpedantic", "-Wno-gnu-binary-literal", "-std=c2x", \
+		"-pipe"
+#define CFLAGS_DEBUG "-g", "-ggdb3", "-DDEBUG=1"
 #define CFLAGS_RELEASE \
 	"-Werror", "-O3", "-march=native", "-mtune=native", "-flto"
 #define LDFLAGS_RELEASE "-flto"
