@@ -41,10 +41,11 @@ rloop(void)
 			break;
 		}
 
-		if (*(p = strtrim(line)))
-			add_history((char *)p);
+		if (!*(p = strtrim(line)))
+			goto empty;
 
-		lexstr("<stdin>", (char8_t *)line, &toks);
+		add_history(p);
+		lexstr("<stdin>", (char8_t *)p, &toks);
 
 		da_foreach (&toks, tok) {
 			if (tok->kind == LTK_NL && !tok->p)
@@ -57,8 +58,9 @@ rloop(void)
 			}
 		}
 
-		free(line);
 		free(toks.buf);
+empty:
+		free(line);
 	}
 }
 
