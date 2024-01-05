@@ -230,6 +230,10 @@ lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 			}
 
 			tok.len = s - tok.p;
+			if (ᚱ == '\n')
+				lexpfw('\n', &lp);
+			else
+				lp.col += tok.len;
 		}
 
 #undef ISLIT
