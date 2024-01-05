@@ -46,7 +46,8 @@ lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 		return;
 	}
 
-	while (*(s = c8pcbrknul(s, WHITESPACE))) {
+	/* TODO: Remove cast once Clangd gets u8 string literal support */
+	while (*(s = c8pcbrknul(s, (char8_t *)WHITESPACE))) {
 		struct lextok tok = {};
 
 		/* Set tok to the token of kind k and byte-length w */
@@ -217,7 +218,8 @@ lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 			tok.kind = LTK_ARG;
 			tok.p = s;
 
-			while (*(s = c8pbrknul(s, SPECIAL))) {
+			/* TODO: Remove cast once Clangd gets u8 string literal support */
+			while (*(s = c8pbrknul(s, (char8_t *)SPECIAL))) {
 				ᚱ = c8tor(s);
 				if ((ᚱ == '}' && !datopis(&ls, LS_BRACE))
 				    || (ᚱ == ')' && !datopis(&ls, LS_PAREN))
