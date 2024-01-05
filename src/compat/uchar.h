@@ -3,6 +3,7 @@
 #ifndef ANDY_UCHAR_H
 #define ANDY_UCHAR_H
 
+#include <stddef.h> /* For size_t */
 #include <stdint.h>
 
 typedef unsigned char char8_t;
