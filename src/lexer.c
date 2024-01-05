@@ -221,13 +221,13 @@ lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 }
 
 void
-lexpfw(rune ch, struct lexpos *lp)
+lexpfw(rune ᚱ, struct lexpos *lp)
 {
-	if (ch == '\n') {
+	if (ᚱ == '\n') {
 		lp->col = 0;
 		lp->row++;
 	} else
-		lp->col += rwdth(ch);
+		lp->col += rwdth(ᚱ);
 }
 
 void

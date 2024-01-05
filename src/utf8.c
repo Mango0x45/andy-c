@@ -11,9 +11,9 @@
 
 #if !HAS_STRCHRNUL
 static char *
-strchrnul(const char *p, int ch)
+strchrnul(const char *p, int c)
 {
-	while (*p && *p != ch)
+	while (*p && *p != c)
 		p++;
 	return (char *)p;
 }
