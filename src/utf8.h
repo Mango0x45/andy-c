@@ -55,6 +55,11 @@ rune c8tor(const char8_t *);
    as being either a space, a tab, or a null-byte. */
 [[unsequenced]] bool risbndry(rune);
 
+/* risstart() and riscont() test to see if the given rune has the unicode
+   XID_Start or XID_Continue properties respectively. */
+[[unsequenced]] bool risstart(rune);
+[[unsequenced]] bool riscont(rune);
+
 #ifdef __GNUC__
 #	pragma GCC diagnostic pop
 #endif

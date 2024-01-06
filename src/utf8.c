@@ -1,3 +1,5 @@
+#include <sys/types.h>
+
 #include <stdint.h>
 #if HAS_STRCHRNUL
 #	include <string.h>
@@ -7,7 +9,16 @@
 #include "utf8.h"
 #include "util.h"
 
+#include "gen/xid.h"
+
 #define ASCII_MAX (0x7F)
+
+#define U1(x) (((x)&0b1000'0000) == 0b0000'0000)
+#define U2(x) (((x)&0b1110'0000) == 0b1100'0000)
+#define U3(x) (((x)&0b1111'0000) == 0b1110'0000)
+#define U4(x) (((x)&0b1111'1000) == 0b1111'0000)
+
+static bool rtbl_bsearch(size_t n, const rune[n][2], rune);
 
 #if !HAS_STRCHRNUL
 static char *
@@ -18,11 +29,6 @@ strchrnul(const char *p, int c)
 	return (char *)p;
 }
 #endif
-
-#define U1(x) (((x)&0b1000'0000) == 0b0000'0000)
-#define U2(x) (((x)&0b1110'0000) == 0b1100'0000)
-#define U3(x) (((x)&0b1111'0000) == 0b1110'0000)
-#define U4(x) (((x)&0b1111'1000) == 0b1111'0000)
 
 char8_t *
 c8chk(const char8_t *s)
@@ -151,4 +157,36 @@ bool
 risbndry(rune ᚱ)
 {
 	return ᚱ == ' ' || ᚱ == '\t' || ᚱ == '\n' || ᚱ == '\0';
+}
+
+bool
+rtbl_bsearch(size_t n, const rune tbl[n][2], rune ᚱ)
+{
+	ssize_t lo, hi;
+	lo = 0;
+	hi = n - 1;
+
+	while (lo <= hi) {
+		ssize_t i = (lo + hi) / 2;
+
+		if (ᚱ < tbl[i][0])
+			hi = i - 1;
+		else if (ᚱ > tbl[i][1])
+			lo = i + 1;
+		else
+			return true;
+	}
+
+	return false;
+}
+bool
+risstart(rune ᚱ)
+{
+	return rtbl_bsearch(lengthof(xid_start_tbl), xid_start_tbl, ᚱ);
+}
+
+bool
+riscont(rune ᚱ)
+{
+	return rtbl_bsearch(lengthof(xid_cont_tbl), xid_cont_tbl, ᚱ);
 }

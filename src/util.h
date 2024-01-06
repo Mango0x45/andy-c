@@ -20,4 +20,7 @@
 #define min(α, β) ((α) < (β) ? (α) : (β))
 #define max(α, β) ((α) > (β) ? (α) : (β))
 
+/* Length of static arrays */
+#define lengthof(α) (sizeof(α) / sizeof(*(α)))
+
 #endif /* !ANDY_UTIL_H */
