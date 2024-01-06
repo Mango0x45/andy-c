@@ -11,13 +11,11 @@
 
 #define SPECIAL WHITESPACE u8"\n\"#$'();<>{}|‘“"
 
-typedef enum {
-	LS_BRACE, /* In braces */
-	LS_PAREN, /* In parenthesis */
-} lexstate_t;
-
 struct lexstates {
-	lexstate_t *buf;
+	enum {
+		LS_BRACE,
+		LS_PAREN,
+	} *buf;
 	size_t len, cap;
 };
 
