@@ -104,34 +104,32 @@ lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 			tok.pcrf.rd = tok.pcrf.wr = true;
 			dapush(&ls, LS_BRACE);
 
-#define CHK_FD_FLAG \
+#define CHKFLAG(c, f) \
 	do { \
-		if (*s == '&') { \
-			tok.rdrf.fd = true; \
+		if (*s == (c)) { \
+			tok.rdrf.f = true; \
+			tok.len++; \
+			lp.col++; \
 			s++; \
 		} \
 	} while (false)
 
 		} else if (ISLIT(">>")) {
 			TOKLIT(2, LTK_RDR);
+			CHKFLAG('&', fd);
 			tok.rdrf.app = true;
 			tok.rdrf.clb = true;
-			CHK_FD_FLAG;
-		} else if (ISLIT(">!")) {
-			TOKLIT(2, LTK_RDR);
-			tok.rdrf.wr = true;
-			tok.rdrf.clb = true;
-			CHK_FD_FLAG;
 		} else if (ᚱ == '>') {
 			TOKLIT(1, LTK_RDR);
+			CHKFLAG('!', clb);
+			CHKFLAG('&', fd);
 			tok.rdrf.wr = true;
-			CHK_FD_FLAG;
 		} else if (ᚱ == '<') {
 			TOKLIT(1, LTK_RDR);
+			CHKFLAG('&', fd);
 			tok.rdrf.rd = true;
-			CHK_FD_FLAG;
 
-#undef CHK_FD_FLAG
+#undef CHKFLAG
 
 		} else if (ᚱ == '\'') {
 			tok.kind = LTK_STR_RAW;
