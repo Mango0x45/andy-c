@@ -19,7 +19,13 @@ cat <<EOF
 
 EOF
 
-curl -s "$URL" | awk '
+{
+	curl -s "$URL"
+	cat <<-EOF
+	2032..2034    ; XID_Continue # Po   [3] PRIME..TRIPLE PRIME
+	2057          ; XID_Continue # Po       QUADRUPLE PRIME
+	EOF
+} | awk '
 BEGIN { FS = "\\s*;\\s*" }
 
 $2 ~ /^XID_Continue/ && !x {
@@ -44,7 +50,7 @@ do
 	xx01) name=cont  ;;
 	esac
 
-	grep . $f | paste -d' ' - - - | sed "
+	grep . $f | sort | paste -d' ' - - - | sed "
 		1istatic const rune xid_${name}_tbl[][2] = {
 		s/^/\t/
 		\$a};
