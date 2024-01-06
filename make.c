@@ -141,6 +141,17 @@ build(void)
 	if ((rv = glob("src/*.c", 0, globerr, &g)) && rv != GLOB_NOMATCH)
 		die("glob");
 
+	/* Don’t compile repr.c in release builds */
+	if (!dflag) {
+		for (size_t i = 0; i < g.gl_pathc; i++) {
+			if (streq("src/repr.c", g.gl_pathv[i])) {
+				memmove(g.gl_pathv + i, g.gl_pathv + i + 1, g.gl_pathc - i + 1);
+				g.gl_pathc--;
+				break;
+			}
+		}
+	}
+
 	for (size_t i = 0; i < g.gl_pathc; i++) {
 		char *src, *dst;
 		src = g.gl_pathv[i];
