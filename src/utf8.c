@@ -1,5 +1,6 @@
 #include <sys/types.h>
 
+#include <ctype.h>
 #include <stdint.h>
 #if HAS_STRCHRNUL
 #	include <string.h>
@@ -176,12 +177,16 @@ rtbl_bsearch(size_t n, const rune tbl[n][2], rune ᚱ)
 bool
 risstart(rune ᚱ)
 {
+	if (LIKELY(ᚱ <= ASCII_MAX))
+		return isalpha(ᚱ) || ᚱ == '_';
 	return rtbl_bsearch(lengthof(xid_start_tbl), xid_start_tbl, ᚱ);
 }
 
 bool
 riscont(rune ᚱ)
 {
+	if (LIKELY(ᚱ <= ASCII_MAX))
+		return isalnum(ᚱ) || ᚱ == '_';
 	return rtbl_bsearch(lengthof(xid_cont_tbl), xid_cont_tbl, ᚱ);
 }
 

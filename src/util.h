@@ -23,4 +23,11 @@
 /* Length of static arrays */
 #define lengthof(α) (sizeof(α) / sizeof(*(α)))
 
+/* Mark a branch as likely */
+#ifdef __GNUC__
+#	define LIKELY(α) __builtin_expect((α), 1)
+#else
+#	define LIKELY(α)
+#endif
+
 #endif /* !ANDY_UTIL_H */
