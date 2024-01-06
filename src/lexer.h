@@ -4,22 +4,25 @@
 #include <uchar.h>
 
 typedef enum {
-	LTK_ARG,      /* Argument */
-	LTK_BRC_C,    /* Closing brace */
-	LTK_BRC_O,    /* Opening brace */
-	LTK_NL,       /* End of statement */
-	LTK_PIPE,     /* Pipe */
-	LTK_PRC_RD,   /* Process reading redirection */
-	LTK_PRC_RDWR, /* Process reading- and writing redirection */
-	LTK_PRC_SUB,  /* Process substitution */
-	LTK_PRC_WR,   /* Process writing redirection */
-	LTK_PRN_C,    /* Closing parenthesis */
-	LTK_PRN_O,    /* Opening parenthesis */
-	LTK_RDR,      /* Redirection */
-	LTK_STR_RAW,  /* Raw string */
-	LTK_STR,      /* String */
-	LTK_VAR,      /* Variable reference */
+	LTK_ARG,     /* Argument */
+	LTK_BRC_C,   /* Closing brace */
+	LTK_BRC_O,   /* Opening brace */
+	LTK_NL,      /* End of statement */
+	LTK_PCR,     /* Process redirection */
+	LTK_PCS,     /* Process substitution */
+	LTK_PIPE,    /* Pipe */
+	LTK_PRN_C,   /* Closing parenthesis */
+	LTK_PRN_O,   /* Opening parenthesis */
+	LTK_RDR,     /* Redirection */
+	LTK_STR_RAW, /* Raw string */
+	LTK_STR,     /* String */
+	LTK_VAR,     /* Variable reference */
 } lex_token_kind_t;
+
+struct lex_pcr_flags {
+	bool rd : 1; /* Read */
+	bool wr : 1; /* Write */
+};
 
 struct lex_rdr_flags {
 	bool app : 1; /* Append */
@@ -38,6 +41,7 @@ struct lextok {
 	const char8_t *p;
 	size_t len;
 	union {
+		struct lex_pcr_flags pf;
 		struct lex_rdr_flags rf;
 		struct lex_var_flags vf;
 	};

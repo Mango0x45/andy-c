@@ -50,6 +50,10 @@ repr_lextok(struct lextok lt, int d)
 	_repr(d + 1, lt.kind);
 
 	switch (lt.kind) {
+	case LTK_PCR:
+		eiprintf(d + 1, ".pf   = ");
+		_repr(d + 1, lt.pf);
+		break;
 	case LTK_RDR:
 		eiprintf(d + 1, ".rf   = ");
 		_repr(d + 1, lt.rf);
@@ -84,20 +88,14 @@ repr_lex_token_kind(lex_token_kind_t k, [[maybe_unused]] int _)
 	case LTK_NL:
 		eprintf("NL\n");
 		break;
+	case LTK_PCR:
+		eprintf("PCR\n");
+		break;
+	case LTK_PCS:
+		eprintf("PCS\n");
+		break;
 	case LTK_PIPE:
 		eprintf("PIPE\n");
-		break;
-	case LTK_PRC_RD:
-		eprintf("RD\n");
-		break;
-	case LTK_PRC_RDWR:
-		eprintf("RDWR\n");
-		break;
-	case LTK_PRC_SUB:
-		eprintf("PRC_SUB\n");
-		break;
-	case LTK_PRC_WR:
-		eprintf("PRC_WR\n");
 		break;
 	case LTK_PRN_C:
 		eprintf("PRN_C\n");
@@ -120,6 +118,15 @@ repr_lex_token_kind(lex_token_kind_t k, [[maybe_unused]] int _)
 	default:
 		unreachable();
 	}
+}
+
+void
+repr_lex_pcr_flags(struct lex_pcr_flags f, int d)
+{
+	eprintf("lex_pcr_flags {\n");
+	eiprintf(d + 1, ".rd  = %s\n", btoa(f.rd));
+	eiprintf(d + 1, ".wr  = %s\n", btoa(f.wr));
+	eiprintf(d, "}\n");
 }
 
 void

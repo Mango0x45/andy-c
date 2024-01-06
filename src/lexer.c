@@ -89,16 +89,19 @@ lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 			TOKLIT(1, LTK_PRN_C);
 			ls.len--;
 		} else if (ISLIT("`{")) {
-			TOKLIT(2, LTK_PRC_SUB);
+			TOKLIT(2, LTK_PCS);
 			dapush(&ls, LS_BRACE);
 		} else if (ISLIT("<{")) {
-			TOKLIT(2, LTK_PRC_RD);
+			TOKLIT(2, LTK_PCR);
+			tok.pf.rd = true;
 			dapush(&ls, LS_BRACE);
 		} else if (ISLIT(">{")) {
-			TOKLIT(2, LTK_PRC_WR);
+			TOKLIT(2, LTK_PCR);
+			tok.pf.wr = true;
 			dapush(&ls, LS_BRACE);
 		} else if (ISLIT("<>{")) {
-			TOKLIT(3, LTK_PRC_RDWR);
+			TOKLIT(3, LTK_PCR);
+			tok.pf.rd = tok.pf.wr = true;
 			dapush(&ls, LS_BRACE);
 
 #define CHK_FD_FLAG \
