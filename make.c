@@ -80,9 +80,6 @@ main(int argc, char **argv)
 		}
 	}
 
-	if ((p = getenv("ANDY_DEV")) && *p)
-		dflag = true;
-
 	argc -= optind;
 	argv += optind;
 
