@@ -19,15 +19,8 @@
 #define U4(x) (((x)&0b1111'1000) == 0b1111'0000)
 
 static bool rtbl_bsearch(size_t n, const rune[n][2], rune);
-
 #if !HAS_STRCHRNUL
-static char *
-strchrnul(const char *p, int c)
-{
-	while (*p && *p != c)
-		p++;
-	return (char *)p;
-}
+static char *strchrnul(const char *, int);
 #endif
 
 char8_t *
@@ -190,3 +183,13 @@ riscont(rune ᚱ)
 {
 	return rtbl_bsearch(lengthof(xid_cont_tbl), xid_cont_tbl, ᚱ);
 }
+
+#if !HAS_STRCHRNUL
+char *
+strchrnul(const char *p, int c)
+{
+	while (*p && *p != c)
+		p++;
+	return (char *)p;
+}
+#endif
