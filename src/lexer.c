@@ -93,42 +93,42 @@ lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 			dapush(&ls, LS_BRACE);
 		} else if (ISLIT("<{")) {
 			TOKLIT(2, LTK_PCR);
-			tok.pf.rd = true;
+			tok.pcrf.rd = true;
 			dapush(&ls, LS_BRACE);
 		} else if (ISLIT(">{")) {
 			TOKLIT(2, LTK_PCR);
-			tok.pf.wr = true;
+			tok.pcrf.wr = true;
 			dapush(&ls, LS_BRACE);
 		} else if (ISLIT("<>{")) {
 			TOKLIT(3, LTK_PCR);
-			tok.pf.rd = tok.pf.wr = true;
+			tok.pcrf.rd = tok.pcrf.wr = true;
 			dapush(&ls, LS_BRACE);
 
 #define CHK_FD_FLAG \
 	do { \
 		if (*s == '&') { \
-			tok.rf.fd = true; \
+			tok.rdrf.fd = true; \
 			s++; \
 		} \
 	} while (false)
 
 		} else if (ISLIT(">>")) {
 			TOKLIT(2, LTK_RDR);
-			tok.rf.app = true;
-			tok.rf.clb = true;
+			tok.rdrf.app = true;
+			tok.rdrf.clb = true;
 			CHK_FD_FLAG;
 		} else if (ISLIT(">!")) {
 			TOKLIT(2, LTK_RDR);
-			tok.rf.wr = true;
-			tok.rf.clb = true;
+			tok.rdrf.wr = true;
+			tok.rdrf.clb = true;
 			CHK_FD_FLAG;
 		} else if (ᚱ == '>') {
 			TOKLIT(1, LTK_RDR);
-			tok.rf.wr = true;
+			tok.rdrf.wr = true;
 			CHK_FD_FLAG;
 		} else if (ᚱ == '<') {
 			TOKLIT(1, LTK_RDR);
-			tok.rf.rd = true;
+			tok.rdrf.rd = true;
 			CHK_FD_FLAG;
 
 #undef CHK_FD_FLAG
@@ -206,14 +206,14 @@ lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 				TOKLIT(2, LTK_ARG);
 			else {
 				TOKLIT(2, LTK_VAR);
-				tok.vf.len = true;
+				tok.varf.len = true;
 			}
 		} else if (ISLIT("$^")) {
 			if (risbndry(c8tor(s + 2)))
 				TOKLIT(2, LTK_ARG);
 			else {
 				TOKLIT(2, LTK_VAR);
-				tok.vf.cc = true;
+				tok.varf.cc = true;
 			}
 		} else if (ᚱ == '$') {
 			TOKLIT(1, risbndry(c8tor(s + 1)) ? LTK_ARG : LTK_VAR);

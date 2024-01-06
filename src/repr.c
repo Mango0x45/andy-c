@@ -51,16 +51,16 @@ repr_lextok(struct lextok lt, int d)
 
 	switch (lt.kind) {
 	case LTK_PCR:
-		eiprintf(d + 1, ".pf   = ");
-		_repr(d + 1, lt.pf);
+		eiprintf(d + 1, ".pcrf = ");
+		_repr(d + 1, lt.pcrf);
 		break;
 	case LTK_RDR:
-		eiprintf(d + 1, ".rf   = ");
-		_repr(d + 1, lt.rf);
+		eiprintf(d + 1, ".rdrf = ");
+		_repr(d + 1, lt.rdrf);
 		break;
 	case LTK_VAR:
-		eiprintf(d + 1, ".vf   = ");
-		_repr(d + 1, lt.vf);
+		eiprintf(d + 1, ".varf = ");
+		_repr(d + 1, lt.varf);
 		break;
 	default:
 		/* Silence warnings for unmatched cases */

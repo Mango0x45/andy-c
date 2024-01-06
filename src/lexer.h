@@ -41,9 +41,9 @@ struct lextok {
 	const char8_t *p;
 	size_t len;
 	union {
-		struct lex_pcr_flags pf;
-		struct lex_rdr_flags rf;
-		struct lex_var_flags vf;
+		struct lex_pcr_flags pcrf;
+		struct lex_rdr_flags rdrf;
+		struct lex_var_flags varf;
 	};
 	lex_token_kind_t kind;
 };
