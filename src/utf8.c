@@ -172,6 +172,7 @@ rtbl_bsearch(size_t n, const rune tbl[n][2], rune ᚱ)
 
 	return false;
 }
+
 bool
 risstart(rune ᚱ)
 {
