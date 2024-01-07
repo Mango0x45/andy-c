@@ -79,6 +79,12 @@ repr_lex_token_kind(lex_token_kind_t k, [[maybe_unused]] int _)
 	case LTK_ARG:
 		eprintf("ARG\n");
 		break;
+	case LTK_BKT_C:
+		eprintf("BKT_C\n");
+		break;
+	case LTK_BKT_O:
+		eprintf("BKT_O\n");
+		break;
 	case LTK_BRC_C:
 		eprintf("BRC_C\n");
 		break;

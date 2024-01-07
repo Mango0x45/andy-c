@@ -5,6 +5,8 @@
 
 typedef enum {
 	LTK_ARG,     /* Argument */
+	LTK_BKT_C,   /* Closing bracket */
+	LTK_BKT_O,   /* Opening bracket */
 	LTK_BRC_C,   /* Closing brace */
 	LTK_BRC_O,   /* Opening brace */
 	LTK_NL,      /* End of statement */
