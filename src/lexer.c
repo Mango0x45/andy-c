@@ -19,22 +19,15 @@ struct lexstates {
 	size_t len, cap;
 };
 
-struct lexpos {
-	size_t col; /* 0-based */
-	size_t row; /* 1-based */
-};
-
-static void lexpfw(rune, struct lexpos *);
-static void warn_unterminated(const char8_t *, size_t, const char *,
-                              struct lexpos);
+[[nonnull]] static void warn_unterminated(const char8_t *, const char8_t *,
+                                          size_t, const char *);
 
 void
 lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 {
 	rune ᚱ;
-	const char8_t *p;
+	const char8_t *p, *bgn = s;
 	struct lexstates ls;
-	struct lexpos lp = {0, 1};
 
 	dainit(&ls, 8);
 	dainit(toks, 64);
@@ -45,9 +38,8 @@ lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 	}
 
 	/* TODO: Remove cast once Clangd gets u8 string literal support */
-	while (p = s, *(s = c8pcbrknul(p, (char8_t *)WHITESPACE))) {
+	while (*(s = c8pcbrknul(s, (char8_t *)WHITESPACE))) {
 		struct lextok tok = {};
-		lp.col += s - p;
 
 		/* Set tok to the token of kind k and byte-length w */
 #define TOKLIT(w, k) \
@@ -55,7 +47,6 @@ lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 		tok.p = s; \
 		tok.kind = (k); \
 		tok.len = (w); \
-		lp.col += (w); \
 		s += (w); \
 	} while (false)
 
@@ -66,7 +57,6 @@ lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 		if (ᚱ == '#') {
 			if (!*(s = c8chrnul(s, '\n')))
 				break;
-			lexpfw('\n', &lp);
 			TOKLIT(1, LTK_NL);
 		} else if (ISLIT("&&")) {
 			TOKLIT(2, LTK_LAND);
@@ -74,11 +64,8 @@ lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 			TOKLIT(2, LTK_LOR);
 		} else if (ᚱ == '|') {
 			TOKLIT(1, LTK_PIPE);
-		} else if (ᚱ == ';') {
+		} else if (ᚱ == ';' || ᚱ == '\n') {
 			TOKLIT(1, LTK_NL);
-		} else if (ᚱ == '\n') {
-			TOKLIT(1, LTK_NL);
-			lexpfw('\n', &lp);
 		} else if (ᚱ == '{') {
 			TOKLIT(1, LTK_BRC_O);
 			dapush(&ls, LS_BRACE);
@@ -112,7 +99,6 @@ lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 		if (*s == (c)) { \
 			tok.rdrf.f = true; \
 			tok.len++; \
-			lp.col++; \
 			s++; \
 		} \
 	} while (false)
@@ -138,7 +124,7 @@ lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 			tok.kind = LTK_STR_RAW;
 			tok.p = ++s;
 			if (!*(s = c8chrnul(s, ᚱ))) {
-				warn_unterminated(tok.p, s - tok.p, file, lp);
+				warn_unterminated(bgn, tok.p - 1, s - tok.p, file);
 				return;
 			}
 			tok.len = s - tok.p;
@@ -152,7 +138,8 @@ lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 			for (;;) {
 				size_t m;
 				if (!*(s = c8chrnul(s, U'’'))) {
-					warn_unterminated(tok.p, s - tok.p, file, lp);
+					warn_unterminated(bgn, tok.p - n * rwdth(U'‘'), s - tok.p,
+					                  file);
 					return;
 				}
 				if ((m = c8nrspn(s, U'’', n)) == n)
@@ -182,7 +169,7 @@ lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 
 			tok.len = s - tok.p;
 			if (!ᚱ) {
-				warn_unterminated(tok.p, tok.len, file, lp);
+				warn_unterminated(bgn, tok.p - n * rwdth(U'“'), tok.len, file);
 				return;
 			}
 			s += n;
@@ -193,7 +180,7 @@ lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 			/* It’s safe to treat input as ASCII here */
 			for (; *s != '"'; s++) {
 				if (!*s) {
-					warn_unterminated(tok.p, s - tok.p, file, lp);
+					warn_unterminated(bgn, tok.p - 1, s - tok.p, file);
 					return;
 				}
 				if (*s == '\\')
@@ -203,12 +190,10 @@ lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 			tok.len = s - tok.p;
 			s++;
 		} else if (ᚱ == '$') {
-			lp.col++;
 			tok.kind = LTK_VAR;
 			tok.p = s++;
 
 			if (*s == '#' || *s == '^') {
-				lp.col++;
 				if (*s == '^')
 					tok.varf.cc = true;
 				else if (*s == '#')
@@ -218,16 +203,14 @@ lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 
 			/* Not a valid identifier; treat it like an argument */
 			if (!risstart(ᚱ = c8tor(s))) {
-				lp.col -= s - tok.p;
 				s = tok.p;
 				tok.varf.cc = tok.varf.len = false;
 				goto lex_arg;
 			}
 
-			do {
-				lexpfw(ᚱ, &lp);
+			do
 				s = c8fwd(s);
-			} while (riscont(ᚱ = c8tor(s)));
+			while (riscont(ᚱ = c8tor(s)));
 			tok.len += s - tok.p;
 		} else {
 lex_arg:
@@ -249,10 +232,6 @@ lex_arg:
 			}
 
 			tok.len = s - tok.p;
-			if (ᚱ == '\n')
-				lexpfw('\n', &lp);
-			else
-				lp.col += tok.len;
 		}
 
 #undef ISLIT
@@ -266,19 +245,10 @@ lex_arg:
 }
 
 void
-lexpfw(rune ᚱ, struct lexpos *lp)
+warn_unterminated(const char8_t *bgn, const char8_t *s, size_t n,
+                  const char *file)
 {
-	if (ᚱ == '\n') {
-		lp->col = 0;
-		lp->row++;
-	} else
-		lp->col += rwdth(ᚱ);
-}
-
-void
-warn_unterminated(const char8_t *s, size_t n, const char *file,
-                  struct lexpos lp)
-{
+	size_t row, col;
 	char *oquo, *cquo, *elip;
 	char *cs = nl_langinfo(CODESET);
 
@@ -292,6 +262,17 @@ warn_unterminated(const char8_t *s, size_t n, const char *file,
 		elip = "..";
 	}
 
-	warnx("%s:%zu:%zu: Unterminated string %s%.*s%s%s", file, lp.row, lp.col,
-	      oquo, (int)min(n, 12), s, n > 12 ? elip : "", cquo);
+	row = 1;
+	col = 0;
+
+	for (rune ᚱ; bgn < s && (ᚱ = c8tor(bgn)); bgn = c8fwd(bgn)) {
+		if (ᚱ == '\n') {
+			col = 0;
+			row++;
+		} else
+			col++;
+	}
+
+	warnx("%s:%zu:%zu: Unterminated string %s%.*s%s%s", file, row, col, oquo,
+	      (int)min(n, 12), s, n > 12 ? elip : "", cquo);
 }
