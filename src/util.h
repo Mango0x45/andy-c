@@ -30,4 +30,9 @@
 #	define LIKELY(α)
 #endif
 
+/* Mark a function as doing absolutely nothing with nulls.  These macros make
+   writing function attributes less verbose. */
+#define nonnull gnu::nonnull
+#define nonulls nonnull, gnu::returns_nonnull
+
 #endif /* !ANDY_UTIL_H */

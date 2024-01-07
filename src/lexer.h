@@ -3,6 +3,8 @@
 
 #include <uchar.h>
 
+#include "util.h"
+
 typedef enum {
 	LTK_ARG,     /* Argument */
 	LTK_BKT_C,   /* Closing bracket */
@@ -57,6 +59,6 @@ struct lextoks {
 
 /* Lex the code in the UTF-8-encoded string s and store the resulting tokens in
    toks.  The input filename f is used for diagnostic messages. */
-void lexstr(const char *f, const char8_t *s, struct lextoks *toks);
+[[nonnull]] void lexstr(const char *f, const char8_t *s, struct lextoks *toks);
 
 #endif /* !ANDY_LEXER_H */

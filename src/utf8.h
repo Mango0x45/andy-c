@@ -7,13 +7,15 @@
 
 #include <uchar.h>
 
+#include "util.h"
+
 #define WHITESPACE u8" \t"
 
 typedef char32_t rune;
 
 /* Returns a pointer to the first occurance of ᚱ in the given string, or the
    terminating nul-byte if no match was found. */
-char8_t *c8chrnul(const char8_t *, rune ᚱ);
+[[nodiscard, nonulls]] char8_t *c8chrnul(const char8_t *, rune ᚱ);
 
 /* c8pbrknul() returns a pointer to the first occurance of any of the runes in
    accept in s, or the trailing nul-byte if no match was found.
@@ -21,26 +23,28 @@ char8_t *c8chrnul(const char8_t *, rune ᚱ);
    c8pcbrknul() is the complement to c8pbrknul(), and returns a pointer to the
    first occurance of any rune that is not contained in reject, or the trailing
    nul-byte if no match was found. */
-char8_t *c8pbrknul(const char8_t *s, const char8_t *accept);
-char8_t *c8pcbrknul(const char8_t *s, const char8_t *reject);
+[[nodiscard, nonulls]] char8_t *c8pbrknul(const char8_t *s,
+                                          const char8_t *accept);
+[[nodiscard, nonulls]] char8_t *c8pcbrknul(const char8_t *s,
+                                           const char8_t *reject);
 
 /* Returns a pointer to the first byte of the first invalid UTF-8 sequence in
    the given string.  If the given string is valid UTF-8, NULL is returned. */
-char8_t *c8chk(const char8_t *);
+[[nodiscard, nonnull]] char8_t *c8chk(const char8_t *);
 
 /* Returns a pointer to the next rune in the given string. */
-char8_t *c8fwd(const char8_t *);
+[[nodiscard, nonulls]] char8_t *c8fwd(const char8_t *);
 
 /* c8rspn() returns the length in bytes of the prefix of the given string that
    is composed entirely of the rune ᚱ.
 
    c8nrspn() works just like c8rspn() but it stops either at the first non-ᚱ
    rune, or when the prefix-length is greater-than or equal-to n. */
-size_t c8rspn(const char8_t *, rune ᚱ);
-size_t c8nrspn(const char8_t *, rune ᚱ, size_t n);
+[[nodiscard, nonnull]] size_t c8rspn(const char8_t *, rune ᚱ);
+[[nodiscard, nonnull]] size_t c8nrspn(const char8_t *, rune ᚱ, size_t n);
 
 /* Returns the first rune in the given string. */
-rune c8tor(const char8_t *);
+[[nodiscard, nonnull]] rune c8tor(const char8_t *);
 
 /* TODO: Remove these pragmas once GCC properly supports [[unsequenced]] */
 #ifdef __GNUC__
@@ -49,16 +53,16 @@ rune c8tor(const char8_t *);
 #endif
 
 /* Return the UTF-8-encoded size of the given rune in bytes. */
-[[unsequenced]] size_t rwdth(rune);
+[[nodiscard, unsequenced]] size_t rwdth(rune);
 
 /* Return whether the given rune is a boundary character.  These are classified
    as being either a space, a tab, or a null-byte. */
-[[unsequenced]] bool risbndry(rune);
+[[nodiscard, unsequenced]] bool risbndry(rune);
 
 /* risstart() and riscont() test to see if the given rune has the unicode
    XID_Start or XID_Continue properties respectively. */
-[[unsequenced]] bool risstart(rune);
-[[unsequenced]] bool riscont(rune);
+[[nodiscard, unsequenced]] bool risstart(rune);
+[[nodiscard, unsequenced]] bool riscont(rune);
 
 #ifdef __GNUC__
 #	pragma GCC diagnostic pop
