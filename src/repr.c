@@ -91,6 +91,12 @@ repr_lex_token_kind(lex_token_kind_t k, [[maybe_unused]] int _)
 	case LTK_BRC_O:
 		eprintf("BRC_O\n");
 		break;
+	case LTK_LAND:
+		eprintf("LAND\n");
+		break;
+	case LTK_LOR:
+		eprintf("LOR\n");
+		break;
 	case LTK_NL:
 		eprintf("NL\n");
 		break;

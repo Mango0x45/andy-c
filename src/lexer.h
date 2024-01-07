@@ -11,6 +11,8 @@ typedef enum {
 	LTK_BKT_O,   /* Opening bracket */
 	LTK_BRC_C,   /* Closing brace */
 	LTK_BRC_O,   /* Opening brace */
+	LTK_LAND,    /* Logical AND */
+	LTK_LOR,     /* Logical OR */
 	LTK_NL,      /* End of statement */
 	LTK_PCR,     /* Process redirection */
 	LTK_PCS,     /* Process substitution */

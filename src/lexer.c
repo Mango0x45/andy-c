@@ -9,7 +9,7 @@
 #include "utf8.h"
 #include "util.h"
 
-#define SPECIAL WHITESPACE u8"\n\"#$'();<>{}|‘“"
+#define SPECIAL WHITESPACE u8"\n\"#$&'();<>{}|‘“"
 
 struct lexstates {
 	enum {
@@ -68,6 +68,10 @@ lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 				break;
 			lexpfw('\n', &lp);
 			TOKLIT(1, LTK_NL);
+		} else if (ISLIT("&&")) {
+			TOKLIT(2, LTK_LAND);
+		} else if (ISLIT("||")) {
+			TOKLIT(2, LTK_LOR);
 		} else if (ᚱ == '|') {
 			TOKLIT(1, LTK_PIPE);
 		} else if (ᚱ == ';') {
@@ -235,6 +239,8 @@ lex_arg:
 				ᚱ = c8tor(s);
 				if ((ᚱ == '}' && !datopis(&ls, LS_BRACE))
 				    || (ᚱ == ')' && !datopis(&ls, LS_PAREN))
+					|| (ᚱ == '&' && s[1] != '&')
+					|| (ᚱ == '|' && s[1] != '|')
 				    || (ᚱ == '$' && !risstart(c8tor(c8fwd(s)))))
 				{
 					s = c8fwd(s);
