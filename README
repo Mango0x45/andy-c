@@ -1,3 +1,49 @@
+                           _              _
+                          / \   _ __   __| |_   _
+                         / _ \ | '_ \ / _` | | | |
+                        / ___ \| | | | (_| | |_| |
+                       /_/   \_\_| |_|\__,_|\__, |
+                                            |___/
+
+
+Documentation
+=============
+
+Documentation is split into two parts: documentation on the Andy
+interpreter, and documentation on the Andy language.
+
+Documentation for the Andy interpreter is contained within the Andy(1)
+manual page.  This can be found at doc/andy.1, however if you’ve
+installed Andy you can just run ‘man andy’ directly.
+
+The Andy shell language documentation can be found in doc/andy.ms.  If
+you have installed Andy to your system, you should be able to find the
+documentation in PDF form under $PREFIX/doc/andy/andy.pdf, where $PREFIX
+is most likely /usr/share or /usr/local/share depending on how Andy was
+installed.  In the same folder you will also find a file simple named
+‘andy’ which is suitable for viewing with a terminal pager such as Less:
+
+    $ less /usr/share/doc/andy/andy
+
+You can also use Groff to compile the raw documentation.  To view the
+terminal-pager-friendly documentation:
+
+    $ groff -Kutf-8 -ms -Tutf8 doc/andy.ms | less
+
+Or to view as PDF (using Zathura as the example PDF reader):
+
+    $ groff -Kutf-8 -ms -Tpdf doc/andy.ms | zathura -
+
+If reading the documentation via a terminal-pager, it might also be nice
+to use the Center[1] utility to center the document properly in your
+terminal:
+
+    $ center -lw`{tput cols} /usr/share/doc/andy/andy | less
+
+
+[1]: https://sr.ht/~mango/center
+
+
 Building
 ========
 
