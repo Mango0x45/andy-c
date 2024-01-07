@@ -32,7 +32,7 @@ void
 lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 {
 	rune ᚱ;
-	char8_t *p;
+	const char8_t *p;
 	struct lexstates ls;
 	struct lexpos lp = {0, 1};
 
@@ -45,8 +45,9 @@ lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 	}
 
 	/* TODO: Remove cast once Clangd gets u8 string literal support */
-	while (*(s = c8pcbrknul(s, (char8_t *)WHITESPACE))) {
+	while (p = s, *(s = c8pcbrknul(p, (char8_t *)WHITESPACE))) {
 		struct lextok tok = {};
+		lp.col += s - p;
 
 		/* Set tok to the token of kind k and byte-length w */
 #define TOKLIT(w, k) \
@@ -197,23 +198,35 @@ lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 
 			tok.len = s - tok.p;
 			s++;
-		} else if (ISLIT("$#")) {
-			if (risbndry(c8tor(s + 2)))
-				TOKLIT(2, LTK_ARG);
-			else {
-				TOKLIT(2, LTK_VAR);
-				tok.varf.len = true;
-			}
-		} else if (ISLIT("$^")) {
-			if (risbndry(c8tor(s + 2)))
-				TOKLIT(2, LTK_ARG);
-			else {
-				TOKLIT(2, LTK_VAR);
-				tok.varf.cc = true;
-			}
 		} else if (ᚱ == '$') {
-			TOKLIT(1, risbndry(c8tor(s + 1)) ? LTK_ARG : LTK_VAR);
+			lp.col++;
+			tok.kind = LTK_VAR;
+			tok.p = s++;
+
+			if (*s == '#' || *s == '^') {
+				lp.col++;
+				if (*s == '^')
+					tok.varf.cc = true;
+				else if (*s == '#')
+					tok.varf.len = true;
+				s++;
+			}
+
+			/* Not a valid identifier; treat it like an argument */
+			if (!risstart(ᚱ = c8tor(s))) {
+				lp.col -= s - tok.p;
+				s = tok.p;
+				tok.varf.cc = tok.varf.len = false;
+				goto lex_arg;
+			}
+
+			do {
+				lexpfw(ᚱ, &lp);
+				s = c8fwd(s);
+			} while (riscont(ᚱ = c8tor(s)));
+			tok.len += s - tok.p;
 		} else {
+lex_arg:
 			tok.kind = LTK_ARG;
 			tok.p = s;
 
@@ -222,7 +235,7 @@ lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 				ᚱ = c8tor(s);
 				if ((ᚱ == '}' && !datopis(&ls, LS_BRACE))
 				    || (ᚱ == ')' && !datopis(&ls, LS_PAREN))
-				    || (ᚱ == '$' && risbndry(c8tor(c8fwd(s)))))
+				    || (ᚱ == '$' && !risstart(c8tor(c8fwd(s)))))
 				{
 					s = c8fwd(s);
 					continue;
