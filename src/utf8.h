@@ -34,6 +34,7 @@ typedef char32_t rune;
 
 /* Returns a pointer to the next rune in the given string. */
 [[nodiscard, nonulls]] char8_t *c8fwd(const char8_t *);
+[[nodiscard, nonulls]] char8_t *c8gfwd(const char8_t *);
 
 /* c8rspn() returns the length in bytes of the prefix of the given string that
    is composed entirely of the rune ᚱ.

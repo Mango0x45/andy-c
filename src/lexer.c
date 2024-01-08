@@ -124,7 +124,8 @@ lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 			tok.kind = LTK_STR_RAW;
 			tok.p = ++s;
 			if (!*(s = c8chrnul(s, ᚱ))) {
-				warn_unterminated(bgn, tok.p - 1, s - tok.p, file);
+				tok.p--;
+				warn_unterminated(bgn, tok.p, s - tok.p, file);
 				return;
 			}
 			tok.len = s - tok.p;
@@ -138,8 +139,8 @@ lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 			for (;;) {
 				size_t m;
 				if (!*(s = c8chrnul(s, U'’'))) {
-					warn_unterminated(bgn, tok.p - n * rwdth(U'‘'), s - tok.p,
-					                  file);
+					tok.p -= n;
+					warn_unterminated(bgn, tok.p, s - tok.p, file);
 					return;
 				}
 				if ((m = c8nrspn(s, U'’', n)) == n)
@@ -169,7 +170,7 @@ lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 
 			tok.len = s - tok.p;
 			if (!ᚱ) {
-				warn_unterminated(bgn, tok.p - n * rwdth(U'“'), tok.len, file);
+				warn_unterminated(bgn, tok.p - n, tok.len + n, file);
 				return;
 			}
 			s += n;
@@ -180,7 +181,8 @@ lexstr(const char *file, const char8_t *s, struct lextoks *toks)
 			/* It’s safe to treat input as ASCII here */
 			for (; *s != '"'; s++) {
 				if (!*s) {
-					warn_unterminated(bgn, tok.p - 1, s - tok.p, file);
+					tok.p--;
+					warn_unterminated(bgn, tok.p, s - tok.p, file);
 					return;
 				}
 				if (*s == '\\')
@@ -265,7 +267,7 @@ warn_unterminated(const char8_t *bgn, const char8_t *s, size_t n,
 	row = 1;
 	col = 0;
 
-	for (rune ᚱ; bgn < s && (ᚱ = c8tor(bgn)); bgn = c8fwd(bgn)) {
+	for (rune ᚱ; bgn < s && (ᚱ = c8tor(bgn)); bgn = c8gfwd(bgn)) {
 		if (ᚱ == '\n') {
 			col = 0;
 			row++;

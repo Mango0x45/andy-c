@@ -10,6 +10,7 @@
 #include "utf8.h"
 #include "util.h"
 
+#include "gen/gbrk.h"
 #include "gen/xid.h"
 
 #define ASCII_MAX (0x7F)
@@ -19,10 +20,33 @@
 #define U3(x) (((x)&0b1111'0000) == 0b1110'0000)
 #define U4(x) (((x)&0b1111'1000) == 0b1111'0000)
 
-static bool rtbl_bsearch(size_t n, const rune[n][2], rune);
+static bool rtblhas(size_t n, const rune[n][2], rune);
+static rgbrk_prop rprop(rune);
 #if !HAS_STRCHRNUL
 static char *strchrnul(const char *, int);
 #endif
+
+bool
+rtblhas(size_t n, const rune tbl[n][2], rune ᚱ)
+{
+	ssize_t lo, hi;
+	lo = 0;
+	hi = n - 1;
+
+	while (lo <= hi) {
+		ssize_t i = (lo + hi) / 2;
+
+		if (ᚱ < tbl[i][0])
+			hi = i - 1;
+		else if (ᚱ > tbl[i][1])
+			lo = i + 1;
+		else
+			return true;
+	}
+
+	return false;
+}
+#define rtblhas(tbl, ᚱ) rtblhas(lengthof(tbl), tbl, ᚱ)
 
 char8_t *
 c8chk(const char8_t *s)
@@ -66,7 +90,7 @@ c8chk(const char8_t *s)
 char8_t *
 c8fwd(const char8_t *s)
 {
-	if (U1(*s))
+	if (LIKELY(U1(*s)))
 		return (char8_t *)s + 1;
 	if (U2(*s))
 		return (char8_t *)s + 2;
@@ -75,6 +99,68 @@ c8fwd(const char8_t *s)
 	if (U4(*s))
 		return (char8_t *)s + 4;
 	unreachable();
+}
+
+bool
+risgbrk(rune a, rune b)
+{
+	rgbrk_prop ap, bp;
+
+	/* Below this range, only GB3 applies */
+	if (LIKELY((a | b) < 0x300))
+		return !(a == '\r' && b == '\n');
+
+	/* GB1 and GB2; just use 0 to represent SOT and EOT */
+	if (!a || !b)
+		return true;
+
+	/* GB3 already handled above */
+
+	ap = rprop(a);
+	bp = rprop(b);
+
+	/* GB4 & GB5 */
+	if (ap == '\r' || ap == '\n' || (ap & UGP_CTRL))
+		return true;
+	if (bp == '\r' || bp == '\n' || (bp & UGP_CTRL))
+		return true;
+
+	/* GB6 */
+	if ((ap & UGP_L) && (bp & (UGP_L | UGP_V | UGP_LV | UGP_LVT)))
+		return false;
+
+	/* GB7 */
+	if ((ap & (UGP_LV | UGP_V)) && (bp & (UGP_V | UGP_T)))
+		return false;
+
+	/* GB8 */
+	if ((ap & (UGP_T | UGP_LVT)) && (bp & UGP_T))
+		return false;
+
+	/* GB9(a b) */
+	if ((ap & UGP_PREP) || (bp & (UGP_EXT | UGP_ZWJ | UGP_SM)))
+		return false;
+
+	/* TODO: GB(9c 11 12 13) */
+
+	/* GB999 */
+	return true;
+}
+
+char8_t *
+c8gfwd(const char8_t *s)
+{
+	rune a, b;
+
+	while (*s) {
+		a = c8tor(s);
+		b = c8tor(s = c8fwd(s));
+
+		if (risgbrk(a, b))
+			break;
+	}
+
+	return (char8_t *)s;
 }
 
 char8_t *
@@ -154,32 +240,11 @@ risbndry(rune ᚱ)
 }
 
 bool
-rtbl_bsearch(size_t n, const rune tbl[n][2], rune ᚱ)
-{
-	ssize_t lo, hi;
-	lo = 0;
-	hi = n - 1;
-
-	while (lo <= hi) {
-		ssize_t i = (lo + hi) / 2;
-
-		if (ᚱ < tbl[i][0])
-			hi = i - 1;
-		else if (ᚱ > tbl[i][1])
-			lo = i + 1;
-		else
-			return true;
-	}
-
-	return false;
-}
-
-bool
 risstart(rune ᚱ)
 {
 	if (LIKELY(ᚱ <= ASCII_MAX))
 		return isalpha(ᚱ) || ᚱ == '_';
-	return rtbl_bsearch(lengthof(xid_start_tbl), xid_start_tbl, ᚱ);
+	return rtblhas(xid_start_tbl, ᚱ);
 }
 
 bool
@@ -187,7 +252,28 @@ riscont(rune ᚱ)
 {
 	if (LIKELY(ᚱ <= ASCII_MAX))
 		return isalnum(ᚱ) || ᚱ == '_';
-	return rtbl_bsearch(lengthof(xid_cont_tbl), xid_cont_tbl, ᚱ);
+	return rtblhas(xid_cont_tbl, ᚱ);
+}
+
+rgbrk_prop
+rprop(rune ch)
+{
+	ssize_t lo, hi;
+	lo = 0;
+	hi = lengthof(rgbrk_prop_tbl) - 1;
+
+	while (lo <= hi) {
+		ssize_t i = (lo + hi) / 2;
+
+		if (ch < rgbrk_prop_tbl[i].lo)
+			hi = i - 1;
+		else if (ch > rgbrk_prop_tbl[i].hi)
+			lo = i + 1;
+		else
+			return rgbrk_prop_tbl[i].prop;
+	}
+
+	return UGP_OTHER;
 }
 
 #if !HAS_STRCHRNUL
