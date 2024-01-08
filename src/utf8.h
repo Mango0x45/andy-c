@@ -32,7 +32,8 @@ typedef char32_t rune;
    the given string.  If the given string is valid UTF-8, NULL is returned. */
 [[nodiscard, nonnull]] char8_t *c8chk(const char8_t *);
 
-/* Returns a pointer to the next rune in the given string. */
+/* c8fwd() returns a pointer to the next codepoint in the given string. c8gfwd()
+   is similar but works on graphemes instead of runes. */
 [[nodiscard, nonulls]] char8_t *c8fwd(const char8_t *);
 [[nodiscard, nonulls]] char8_t *c8gfwd(const char8_t *);
 
