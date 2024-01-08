@@ -21,6 +21,7 @@
 #define U4(x) (((x)&0b1111'1000) == 0b1111'0000)
 
 static bool rtblhas(size_t n, const rune[n][2], rune);
+static bool risgbrk(size_t *, rune, rune);
 static rgbrk_prop rprop(rune);
 #if !HAS_STRCHRNUL
 static char *strchrnul(const char *, int);
@@ -102,7 +103,7 @@ c8fwd(const char8_t *s)
 }
 
 bool
-risgbrk(rune a, rune b)
+risgbrk(size_t *state, rune a, rune b)
 {
 	rgbrk_prop ap, bp;
 
@@ -141,6 +142,13 @@ risgbrk(rune a, rune b)
 	if ((ap & UGP_PREP) || (bp & (UGP_EXT | UGP_ZWJ | UGP_SM)))
 		return false;
 
+	/* GB(12 13) */
+	if (ap & UGP_RI) {
+		(*state)++;
+		if ((bp & UGP_RI) && (*state & 1))
+			return false;
+	}
+
 	/* TODO: GB(9c 11 12 13) */
 
 	/* GB999 */
@@ -151,12 +159,13 @@ char8_t *
 c8gfwd(const char8_t *s)
 {
 	rune a, b;
+	size_t state = 0;
 
 	while (*s) {
 		a = c8tor(s);
 		b = c8tor(s = c8fwd(s));
 
-		if (risgbrk(a, b))
+		if (risgbrk(&state, a, b))
 			break;
 	}
 
