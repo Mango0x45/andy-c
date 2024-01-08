@@ -244,12 +244,6 @@ rwdth(rune ᚱ)
 }
 
 bool
-risbndry(rune ᚱ)
-{
-	return ᚱ == ' ' || ᚱ == '\t' || ᚱ == '\n' || ᚱ == '\0';
-}
-
-bool
 risstart(rune ᚱ)
 {
 	if (LIKELY(ᚱ <= ASCII_MAX))

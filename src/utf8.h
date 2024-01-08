@@ -57,10 +57,6 @@ typedef char32_t rune;
 /* Return the UTF-8-encoded size of the given rune in bytes. */
 [[nodiscard, unsequenced]] size_t rwdth(rune);
 
-/* Return whether the given rune is a boundary character.  These are classified
-   as being either a space, a tab, or a null-byte. */
-[[nodiscard, unsequenced]] bool risbndry(rune);
-
 /* risstart() and riscont() test to see if the given rune has the unicode
    XID_Start or XID_Continue properties respectively. */
 [[nodiscard, unsequenced]] bool risstart(rune);
