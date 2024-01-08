@@ -121,31 +121,31 @@ risgbrk(size_t *state, rune a, rune b)
 	bp = rprop(b);
 
 	/* GB4 & GB5 */
-	if (ap == '\r' || ap == '\n' || (ap & UGP_CTRL))
+	if (ap == '\r' || ap == '\n' || (ap & GBP_CTRL))
 		return true;
-	if (bp == '\r' || bp == '\n' || (bp & UGP_CTRL))
+	if (bp == '\r' || bp == '\n' || (bp & GBP_CTRL))
 		return true;
 
 	/* GB6 */
-	if ((ap & UGP_L) && (bp & (UGP_L | UGP_V | UGP_LV | UGP_LVT)))
+	if ((ap & GBP_L) && (bp & (GBP_L | GBP_V | GBP_LV | GBP_LVT)))
 		return false;
 
 	/* GB7 */
-	if ((ap & (UGP_LV | UGP_V)) && (bp & (UGP_V | UGP_T)))
+	if ((ap & (GBP_LV | GBP_V)) && (bp & (GBP_V | GBP_T)))
 		return false;
 
 	/* GB8 */
-	if ((ap & (UGP_T | UGP_LVT)) && (bp & UGP_T))
+	if ((ap & (GBP_T | GBP_LVT)) && (bp & GBP_T))
 		return false;
 
 	/* GB9(a b) */
-	if ((ap & UGP_PREP) || (bp & (UGP_EXT | UGP_ZWJ | UGP_SM)))
+	if ((ap & GBP_PREP) || (bp & (GBP_EXT | GBP_ZWJ | GBP_SM)))
 		return false;
 
 	/* GB(12 13) */
-	if (ap & UGP_RI) {
+	if (ap & GBP_RI) {
 		(*state)++;
-		if ((bp & UGP_RI) && (*state & 1))
+		if ((bp & GBP_RI) && (*state & 1))
 			return false;
 	}
 
@@ -283,7 +283,7 @@ rprop(rune ch)
 			return rgbrk_prop_tbl[i].prop;
 	}
 
-	return UGP_OTHER;
+	return GBP_OTHER;
 }
 
 #if !HAS_STRCHRNUL
