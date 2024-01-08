@@ -149,7 +149,8 @@ risgbrk(size_t *state, rune a, rune b)
 			return false;
 	}
 
-	/* TODO: GB(9c 11 12 13) */
+	/* TODO: GB9c: too long… */
+	/* TODO: GB11: ZWJ × \p{Extended_Pictographic} */
 
 	/* GB999 */
 	return true;
