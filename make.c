@@ -1,58 +1,67 @@
+#define _GNU_SOURCE
+#include <errno.h>
 #if __has_include(<features.h>)
 #	include <features.h>
 #endif
-
-#if defined(__GLIBC__) || defined(__FreeBSD__) || defined(__NetBSD__) \
-	|| defined(__DragonFly__)
-#	define HAS_STRCHRNUL 1
-#endif
-
-#include <errno.h>
 #include <glob.h>
-#include <libgen.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
+#define CBS_PTHREAD
 #include "cbs.h"
 
-#define CC "cc"
-#define CFLAGS \
-	"-Wall", "-Wextra", "-Wpedantic", "-Wno-gnu-binary-literal", "-std=c2x", \
-		"-pipe"
-#define CFLAGS_DEBUG "-g", "-ggdb3", "-DDEBUG=1"
-#define CFLAGS_RELEASE \
-	"-Werror", "-O3", "-march=native", "-mtune=native", "-flto"
-#define LDFLAGS_RELEASE "-flto"
-
+#define CC     "cc"
 #define TARGET "andy"
 
+#define CFLAGS_ALL                                                             \
+	WARNINGS, "-pipe", "-std=c23", "-Ivendor/mlib/include" GLIB_EXTRAS
+#define CFLAGS_DBG "-g", "-ggdb3", "-O0", "-fsanitize=address,undefined"
+#define CFLAGS_RLS "-O3", "-flto", "-DNDEBUG" NOT_APPLE_EXTRAS
+
+#define WARNINGS                                                               \
+	"-Wall", "-Wextra", "-Wpedantic", "-Wno-attributes", "-Wvla",              \
+		"-Wno-pointer-sign", "-Wno-parentheses"
+
+#ifdef __GLIBC__
+#	define GLIB_EXTRAS , "-D_GNU_SOURCE"
+#else
+#	define GLIB_EXTRAS
+#endif
+
+#ifndef __APPLE__
+#	define NOT_APPLE_EXTRAS , "-march=native", "-mtune=native"
+#else
+#	define NOT_APPLE_EXTRAS
+#endif
+
+#define CMDRC(c)                                                               \
+	do {                                                                       \
+		int ec;                                                                \
+		if ((ec = cmdexec(c)) != EXIT_SUCCESS)                                 \
+			diex("%s terminated with exit-code %d", *(c)._argv, ec);           \
+		cmdclr(&(c));                                                          \
+	} while (false)
+
+#define flagset(o)  (flags & (1 << ((o) - 'a')))
 #define streq(x, y) (!strcmp(x, y))
-#define cmdprc(c) \
-	do { \
-		int ec; \
-		cmdput(c); \
-		if ((ec = cmdexec(c))) \
-			diex("%s terminated with exit-code %d", *c._argv, ec); \
-		cmdclr(&c); \
-	} while (0)
 
 static int globerr(const char *, int);
-static char *ctoo(const char *);
 static void usage(void);
-static void build(void);
+static void work(void *);
 
 static bool dflag;
 static char *argv0;
+
+static unsigned long flags;
 
 void
 usage(void)
 {
 	fprintf(stderr,
-	        "Usage: %1$s [-d]\n"
-	        "       %1$s clean\n"
-	        "       %1$s includes\n",
+	        "Usage: %1$s [-fpr]\n"
+	        "       %1$s clean\n",
 	        argv0);
 	exit(EXIT_FAILURE);
 }
@@ -60,49 +69,111 @@ usage(void)
 int
 main(int argc, char **argv)
 {
-	int opt;
-	char *p;
-
 	cbsinit(argc, argv);
 	rebuild();
 
-	if (!(argv0 = strdup(*argv)))
-		die("strdup");
-	argv0 = basename(argv0);
+	argv0 = argv[0];
 
-	while ((opt = getopt(argc, argv, "d")) != -1) {
+	int opt;
+	while ((opt = getopt(argc, argv, "fpr")) != -1) {
 		switch (opt) {
-		case 'd':
-			dflag = true;
-			break;
-		default:
+		case '?':
 			usage();
+		default:
+			flags |= 1 << (opt - 'a');
 		}
 	}
 
 	argc -= optind;
 	argv += optind;
 
-	if (chdir(dirname(*(argv - optind))) == -1)
-		die("chdir: %s", *(argv - optind));
-
-	if (argc > 0) {
+	if (argc >= 1) {
+		cmd_t c = {};
 		if (streq("clean", *argv)) {
-			cmd_t c = {0};
-			cmdadd(&c, "find", ".", "(", "-name", TARGET, "-or", "-name", "*.o",
-			       ")", "-delete");
-			cmdprc(c);
-		} else if (streq("includes", *argv)) {
-			cmd_t c = {};
-			cmdadd(&c, "find", "src", "-name", "*.c", "-exec",
-			       "include-what-you-use", "-std=c2x", "-DDEBUG", "{}", ";");
-			cmdprc(c);
+			cmdadd(&c, "find", ".", "(", "-name", TARGET, "-or", "-name",
+			       "*.[ao]", ")", "-delete");
+			cmdput(c);
+			CMDRC(c);
 		} else {
-			fprintf(stderr, "%s: invalid subcommand -- '%s'\n", argv0, *argv);
+			fprintf(stderr, "%s: invalid subcommand — ‘%s’\n", argv0, *argv);
 			usage();
 		}
-	} else
-		build();
+	} else {
+		int err;
+		cmd_t c = {};
+		glob_t g;
+		tpool_t tp;
+
+		if (!fexists("./vendor/mlib/make")) {
+			struct strv sv = {};
+			env_or_default(&sv, "CC", CC);
+			cmdaddv(&c, sv.buf, sv.len);
+			cmdadd(&c, "-lpthread", "-o", "./vendor/mlib/make",
+			       "./vendor/mlib/make.c");
+			CMDRC(c);
+		}
+
+		cmdadd(&c, "./vendor/mlib/make");
+		if (flagset('f'))
+			cmdadd(&c, "-f");
+		if (flagset('p'))
+			cmdadd(&c, "-p");
+		if (flagset('r'))
+			cmdadd(&c, "-r");
+		CMDRC(c);
+
+		if ((err = glob("src2/*.c", 0, globerr, &g)) != 0
+		    && err != GLOB_NOMATCH)
+		{
+			die("glob");
+		}
+
+		int procs = nproc();
+		if (procs == -1) {
+			if (errno)
+				die("nproc");
+			procs = 8;
+		}
+
+		tpinit(&tp, procs);
+		for (size_t i = 0; i < g.gl_pathc; i++)
+			tpenq(&tp, work, g.gl_pathv[i], nullptr);
+		tpwait(&tp);
+		tpfree(&tp);
+
+		for (size_t i = 0; i < g.gl_pathc; i++)
+			g.gl_pathv[i][strlen(g.gl_pathv[i]) - 1] = 'o';
+
+		if (flagset('f')
+		    || foutdatedv(TARGET, (const char **)g.gl_pathv, g.gl_pathc))
+		{
+			struct strv sv = {}, pc = {};
+			env_or_default(&sv, "CC", CC);
+			if (flagset('r'))
+				env_or_default(&sv, "CFLAGS", CFLAGS_RLS);
+			else
+				env_or_default(&sv, "CFLAGS", CFLAGS_DBG);
+
+			cmdaddv(&c, sv.buf, sv.len);
+			if (pcquery(&pc, "readline", PKGC_CFLAGS | PKGC_LIBS))
+				cmdaddv(&c, pc.buf, pc.len);
+			else
+				cmdadd(&c, "-lreadline");
+
+			cmdaddv(&c, g.gl_pathv, g.gl_pathc);
+			cmdadd(&c, "./vendor/mlib/libmlib.a", "-o", TARGET);
+			if (flagset('p'))
+				cmdput(c);
+			else
+				fprintf(stderr, "CC\t%s\n", TARGET);
+			CMDRC(c);
+
+			strvfree(&sv);
+			strvfree(&pc);
+		}
+
+		globfree(&g);
+	}
 
 	return EXIT_SUCCESS;
 }
@@ -114,93 +185,32 @@ globerr(const char *s, int e)
 	die("glob: %s", s);
 }
 
-char *
-ctoo(const char *s)
-{
-	char *o = strdup(s);
-	size_t n = strlen(s);
-	if (!o)
-		die("strdup");
-	o[n - 1] = 'o';
-	return o;
-}
-
 void
-build(void)
+work(void *p)
 {
-	int rv;
-	glob_t g;
-	cmd_t c = {0};
-	struct strv v = {0};
+	char *dst, *src = p;
+	cmd_t c = {};
+	struct strv sv = {};
 
-	pcquery(&v, "readline", PKGC_CFLAGS);
+	if (!(dst = strdup(src)))
+		die("strdup");
+	dst[strlen(dst) - 1] = 'o';
 
-	if ((rv = glob("src/*.c", 0, globerr, &g)) && rv != GLOB_NOMATCH)
-		die("glob");
-
-	/* Don’t compile repr.c in release builds */
-	if (!dflag) {
-		for (size_t i = 0; i < g.gl_pathc; i++) {
-			if (streq("src/repr.c", g.gl_pathv[i])) {
-				memmove(g.gl_pathv + i, g.gl_pathv + i + 1, g.gl_pathc - i + 1);
-				g.gl_pathc--;
-				break;
-			}
-		}
-	}
-
-	for (size_t i = 0; i < g.gl_pathc; i++) {
-		char *src, *dst;
-		src = g.gl_pathv[i];
-		dst = ctoo(src);
-
-		if (foutdated(dst, src)) {
-			cmdadd(&c, CC, CFLAGS);
-			if (dflag)
-				cmdadd(&c, CFLAGS_DEBUG);
-			else
-				cmdadd(&c, CFLAGS_RELEASE);
-
-				/* <uchar.h> is part of C11 but Apple doesn’t provide it. */
-#if !__has_include(<uchar.h>)
-			cmdadd(&c, "-Isrc/compat");
-#endif
-
-			if (streq("src/main.c", src))
-				cmdaddv(&c, v.buf, v.len);
-#if HAS_STRCHRNUL
-			else if (streq("src/utf8.c", src)) {
-				cmdadd(&c, "-DHAS_STRCHRNUL=1");
-#	if __GLIBC__
-				cmdadd(&c, "-D_GNU_SOURCE");
-#	endif
-			}
-#endif
-			cmdadd(&c, "-o", dst, "-c", src);
-			cmdprc(c);
-		}
-
-		free(dst);
-	}
-
-	for (size_t i = 0; i < g.gl_pathc; i++)
-		g.gl_pathv[i][strlen(g.gl_pathv[i]) - 1] = 'o';
-
-	if (foutdatedv(TARGET, (const char **)g.gl_pathv, g.gl_pathc)) {
-		strvfree(&v);
-		cmdadd(&c, CC);
-		if (pcquery(&v, "readline", PKGC_LIBS))
-			cmdaddv(&c, v.buf, v.len);
+	if (flagset('f') || foutdated(dst, src)) {
+		env_or_default(&sv, "CC", CC);
+		if (flagset('r'))
+			env_or_default(&sv, "CFLAGS", CFLAGS_RLS);
 		else
-			cmdadd(&c, "-lreadline");
-		if (!dflag)
-			cmdadd(&c, LDFLAGS_RELEASE);
-		cmdadd(&c, "-o", TARGET);
-		cmdaddv(&c, g.gl_pathv, g.gl_pathc);
-		cmdprc(c);
+			env_or_default(&sv, "CFLAGS", CFLAGS_DBG);
+		cmdaddv(&c, sv.buf, sv.len);
+		cmdadd(&c, CFLAGS_ALL, "-o", dst, "-c", src);
+		if (flagset('p'))
+			cmdput(c);
+		else
+			fprintf(stderr, "CC\t%s\n", dst);
+		CMDRC(c);
 	}
 
-	free(c._argv);
-	globfree(&g);
-	strvfree(&v);
+	strvfree(&sv);
+	free(dst);
 }
