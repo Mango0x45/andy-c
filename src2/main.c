@@ -4,11 +4,16 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <alloc.h>
+#include <dynarr.h>
 #include <errors.h>
 #include <mbstring.h>
 #include <readline/history.h>
 #include <readline/readline.h>
 #include <unicode/prop.h>
+
+#include "lexer.h"
+#include "repr.h"
 
 static bool interactive;
 
@@ -31,9 +36,11 @@ main(int, char **argv)
 void
 rloop(void)
 {
+	arena a;
+	struct arena_ctx ctx = {.a = &a};
+
 	for (;;) {
 		char *save = readline("Andy > ");
-		// struct lextoks toks;
 
 		if (save == nullptr) {
 			fputs("^D\n", stderr);
@@ -47,12 +54,15 @@ rloop(void)
 
 		((char8_t *)line.p)[line.len] = '\0';
 		add_history(line.p);
-		// lexstr("<stdin>", (char8_t *)p, &toks);
 
-		// da_foreach (&toks, tok)
-		// 	repr(*tok);
+		a = mkarena(0);
+		lextoks toks = {.alloc = alloc_arena, .ctx = &ctx};
+		(void)lexstr("<stdin>", line, &toks);
 
-		// free(toks.buf);
+		da_foreach (toks, tok)
+			repr(*tok);
+
+		arena_free(&a);
 empty:
 		free(save);
 	}
@@ -63,7 +73,7 @@ ucstrim(struct u8view sv)
 {
 	int w;
 	for (rune ch; (w = ucsnext(&ch, &sv)) != 0;) {
-		if (!uprop_is_pat_ws(ch)) {
+		if (!rishws(ch)) {
 			VSHFT(&sv, -w);
 			break;
 		}
@@ -71,7 +81,7 @@ ucstrim(struct u8view sv)
 
 	const char8_t *p = sv.p + sv.len;
 	for (rune ch; (w = ucsprev(&ch, (const char8_t **)&p, sv.p)) != 0;) {
-		if (!uprop_is_pat_ws(ch)) {
+		if (!rishws(ch)) {
 			sv.len = p - sv.p + w;
 			break;
 		}
