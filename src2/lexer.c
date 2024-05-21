@@ -1,87 +1,98 @@
+#include <string.h>
+
+#include <bitset.h>
 #include <dynarr.h>
 #include <errors.h>
 #include <macros.h>
 #include <mbstring.h>
+#include <rune.h>
 #include <unicode/prop.h>
+#include <unicode/string.h>
 
 #include "lexer.h"
+#include "syntax.h"
 
-bool
-lexstr(const char *f, struct u8view sv, lextoks *toks)
+#define report(...)                                                            \
+	do {                                                                       \
+		warn(__VA_ARGS__);                                                     \
+		tok.sv.len = l->sv.p - tok.sv.p;                                       \
+		tok.kind = LTK_ERR;                                                    \
+		return tok;                                                            \
+	} while (false)
+
+#define ISLIT(y) (strncmp(tok.sv.p, (y), sizeof(y) - 1) == 0)
+
+/* Set tok to the token of kind K which has the string value of S */
+#define TOKLIT(s, k)                                                           \
+	do {                                                                       \
+		tok.kind = (k);                                                        \
+		tok.sv = U8(s);                                                        \
+	} while (false)
+
+/* Test if a rune is valid in an argument */
+[[unsequenced, nodiscard]] static bool risarg(rune);
+
+struct lextok
+lexnext(struct lexer *l)
 {
-	const char8_t *p = ucschk(sv);
-	if (p != nullptr) {
-		warn("%s: invalid byte ‘%02X’ in UTF-8 sequence", f, *p);
-		return false;
-	}
-
 	int w;
-	for (rune ch; (w = ucsnext(&ch, &sv)) != 0;) {
+	for (rune ch; (w = ucsnext(&ch, &l->sv)) != 0;) {
 		if (rishws(ch))
 			continue;
+		struct lextok tok = {.sv.p = l->sv.p - w};
 
-		struct lextok tok = {.sv.p = sv.p - w};
 		if (ch == '#') {
 			do
-				w = ucsnext(&ch, &sv);
+				w = ucsnext(&ch, &l->sv);
 			while (w > 0 && !risvws(ch));
 			tok.kind = LTK_NL;
+		} else if (ISLIT("&&")) {
+			TOKLIT("&&", LTK_LAND);
+			VSHFT(&l->sv, 1);
+		} else if (ISLIT("||")) {
+			TOKLIT("||", LTK_LOR);
+			VSHFT(&l->sv, 1);
 		} else {
-			size_t n = w;
-			do
-				n += w = ucsnext(&ch, &sv);
-			while (w > 0 && !uprop_is_pat_ws(ch));
-			if (w > 0)
-				n -= w;
+			size_t n = 0;
+			VSHFT(&l->sv, -w);
+			do {
+				char8_t e;
+				n += w = ucsnext(&ch, &l->sv);
 
-			tok.sv.len = n;
+				if (w > 0 && ch == '\\') {
+					n += w = ucsnext(&ch, &l->sv);
+					if (w == 0) {
+						report("%s:%zu: expected escape sequence but got end "
+						       "of file",
+						       l->file, l->sv.p - l->base - 1);
+					} else if ((e = escape(ch, true)) == 0) {
+						VSHFT(&l->sv, -w);
+						struct u8view g, cpy = l->sv;
+						ucsgnext(&g, &cpy);
+						report("%s:%zu: invalid escape sequence ‘\\%.*s’",
+						       l->file, l->sv.p - l->base - 1,
+						       SV_PRI_ARGS(g));
+					}
+				}
+			} while (w > 0 && risarg(ch));
+			if (w > 0) {
+				n -= w;
+				VSHFT(&l->sv, -w);
+			}
+
+			if ((tok.sv.len = n) == 0)
+				break;
 			tok.kind = LTK_ARG;
 		}
 
-		DAPUSH(toks, tok);
+		return tok;
 	}
 
-	DAPUSH(toks, ((struct lextok){.kind = LTK_NL}));
-	return true;
+	return (struct lextok){.kind = LTK_EOF};
 }
 
 bool
-rishws(rune ch)
+risarg(rune ch)
 {
-	static constexpr rune ws[] = {
-		0x0009, /* CHARACTER TABULATION */
-		0x0020, /* SPACE */
-		0x200E, /* LEFT-TO-RIGHT MARK */
-		0x200F, /* RIGHT-TO-LEFT MARK */
-	};
-
-	static_assert(lengthof(ws) == 4);
-#pragma GCC unroll 4
-	for (size_t i = 0; i < lengthof(ws); i++) {
-		if (ws[i] == ch)
-			return true;
-	}
-	return false;
-}
-
-bool
-risvws(rune ch)
-{
-	static constexpr rune ws[] = {
-		0x000A, /* LINE FEED */
-		0x000B, /* LINE TABULATION */
-		0x000C, /* FORM FEED */
-		0x000D, /* CARRIAGE RETURN */
-		0x0085, /* NEXT LINE */
-		0x2028, /* LINE SEPARATOR */
-		0x2029, /* PARAGRAPH SEPARATOR */
-	};
-
-	static_assert(lengthof(ws) == 7);
-#pragma GCC unroll 7
-	for (size_t i = 0; i < lengthof(ws); i++) {
-		if (ws[i] == ch)
-			return true;
-	}
-	return false;
+	return !uprop_is_pat_ws(ch) && !rismeta(ch);
 }

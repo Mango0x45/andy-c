@@ -1,0 +1,15 @@
+#!/usr/bin/python3
+
+xs = ['#', '&', '|']
+
+mask = 0
+for x in map(ord, xs):
+	mask |= 1 << x
+
+print('static constexpr bitset(meta, ASCII_MAX + 1) = {')
+
+for _ in range(0x80 // 8):
+	print('0x%02X,' % (mask & 0xFF))
+	mask >>= 8
+
+print('};')

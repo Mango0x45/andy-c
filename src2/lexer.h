@@ -1,12 +1,21 @@
 #ifndef ANDY_LEXER_H
 #define ANDY_LEXER_H
 
-#include <dynarr.h>
 #include <mbstring.h>
 
+struct lexer {
+	const char *file;
+	struct u8view sv;
+	const char8_t *base;
+};
+
 enum lex_tok_kind {
-	LTK_ARG, /* Argument */
-	LTK_NL,  /* End of line */
+	LTK_ARG,  /* Argument */
+	LTK_EOF,  /* End of file */
+	LTK_ERR,  /* Lexing error */
+	LTK_LAND, /* Logical AND */
+	LTK_LOR,  /* Logical OR */
+	LTK_NL,   /* End of line */
 };
 
 struct lextok {
@@ -14,16 +23,7 @@ struct lextok {
 	struct u8view sv;
 };
 
-typedef dynarr(struct lextok) lextoks;
-
-/* Test if a rune is horizontal whitespace */
-[[unsequenced, nodiscard]] bool rishws(rune);
-
-/* Test if a rune is vertical whitespace */
-[[unsequenced, nodiscard]] bool risvws(rune);
-
-/* Lex the string SV and store the resulting tokens in TOKS.  The input filename
-   F is used for diagnostic messages. */
-[[gnu::nonnull]] bool lexstr(const char *f, struct u8view sv, lextoks *toks);
+[[nodiscard]] struct lextok lexnext(struct lexer *);
+[[nodiscard]] struct lextok lexpeek(struct lexer);
 
 #endif /* !ANDY_LEXER_H */

@@ -4,8 +4,6 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <alloc.h>
-#include <dynarr.h>
 #include <errors.h>
 #include <mbstring.h>
 #include <readline/history.h>
@@ -14,6 +12,7 @@
 
 #include "lexer.h"
 #include "repr.h"
+#include "syntax.h"
 
 static bool interactive;
 
@@ -36,9 +35,6 @@ main(int, char **argv)
 void
 rloop(void)
 {
-	arena a;
-	struct arena_ctx ctx = {.a = &a};
-
 	for (;;) {
 		char *save = readline("Andy > ");
 
@@ -55,14 +51,18 @@ rloop(void)
 		((char8_t *)line.p)[line.len] = '\0';
 		add_history(line.p);
 
-		a = mkarena(0);
-		lextoks toks = {.alloc = alloc_arena, .ctx = &ctx};
-		(void)lexstr("<stdin>", line, &toks);
+		struct lextok tok;
+		struct lexer lexer = {
+			.file = "<stdin>",
+			.sv = line,
+			.base = line.p,
+		};
 
-		da_foreach (toks, tok)
-			repr(*tok);
+		do {
+			tok = lexnext(&lexer);
+			repr(tok);
+		} while (tok.kind != LTK_EOF && tok.kind != LTK_ERR);
 
-		arena_free(&a);
 empty:
 		free(save);
 	}
