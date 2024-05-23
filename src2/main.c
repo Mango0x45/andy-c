@@ -10,7 +10,9 @@
 #include <readline/readline.h>
 #include <unicode/prop.h>
 
+#include "exec.h"
 #include "lexer.h"
+#include "parser.h"
 #include "repr.h"
 #include "syntax.h"
 
@@ -51,17 +53,26 @@ rloop(void)
 		((char8_t *)line.p)[line.len] = '\0';
 		add_history(line.p);
 
-		struct lextok tok;
 		struct lexer lexer = {
 			.file = "<stdin>",
 			.sv = line,
 			.base = line.p,
 		};
 
+#if 1
+		arena a = mkarena(0);
+		struct program *p = parse_program(lexer, &a);
+		if (p == nullptr)
+			warn("failed to parse");
+		exec_prog(*p, &a);
+		arena_free(&a);
+#else
+		struct lextok tok;
 		do {
 			tok = lexnext(&lexer);
 			repr(tok);
 		} while (tok.kind != LTK_EOF && tok.kind != LTK_ERR);
+#endif
 
 empty:
 		free(save);

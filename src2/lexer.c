@@ -1,3 +1,4 @@
+#define DEBUG
 #include <string.h>
 
 #include <bitset.h>
@@ -10,6 +11,9 @@
 #include <unicode/string.h>
 
 #include "lexer.h"
+#ifdef DEBUG
+#	include "repr.h"
+#endif
 #include "syntax.h"
 
 #define report(...)                                                            \
@@ -46,6 +50,9 @@ lexnext(struct lexer *l)
 				w = ucsnext(&ch, &l->sv);
 			while (w > 0 && !risvws(ch));
 			tok.kind = LTK_NL;
+		} else if (ch == ';') {
+			tok.sv.len = 1;
+			tok.kind = LTK_SEMI;
 		} else if (ISLIT("&&")) {
 			TOKLIT("&&", LTK_LAND);
 			VSHFT(&l->sv, 1);
@@ -70,8 +77,7 @@ lexnext(struct lexer *l)
 						struct u8view g, cpy = l->sv;
 						ucsgnext(&g, &cpy);
 						report("%s:%zu: invalid escape sequence ‘\\%.*s’",
-						       l->file, l->sv.p - l->base - 1,
-						       SV_PRI_ARGS(g));
+						       l->file, l->sv.p - l->base - 1, SV_PRI_ARGS(g));
 					}
 				}
 			} while (w > 0 && risarg(ch));
@@ -85,10 +91,22 @@ lexnext(struct lexer *l)
 			tok.kind = LTK_ARG;
 		}
 
+#ifdef DEBUG
+		repr(tok);
+#endif
 		return tok;
 	}
 
+#ifdef DEBUG
+	repr((struct lextok){.kind = LTK_EOF});
+#endif
 	return (struct lextok){.kind = LTK_EOF};
+}
+
+struct lextok
+lexpeek(struct lexer l)
+{
+	return lexnext(&l);
 }
 
 bool

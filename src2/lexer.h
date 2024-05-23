@@ -11,11 +11,17 @@ struct lexer {
 
 enum lex_tok_kind {
 	LTK_ARG,  /* Argument */
-	LTK_EOF,  /* End of file */
-	LTK_ERR,  /* Lexing error */
 	LTK_LAND, /* Logical AND */
 	LTK_LOR,  /* Logical OR */
+
+	/* All enumeration values after this point represent something that could be
+	   the end of a unit */
+	_LTK_TERM,
+
+	LTK_EOF,  /* End of file */
+	LTK_ERR,  /* Lexing error */
 	LTK_NL,   /* End of line */
+	LTK_SEMI, /* Semicolon */
 };
 
 struct lextok {

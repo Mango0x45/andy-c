@@ -52,5 +52,10 @@ repr_lex_tok_kind(enum lex_tok_kind k, int)
 	case LTK_NL:
 		eprintf("NL\n");
 		break;
+	case LTK_SEMI:
+		eprintf("SEMI\n");
+		break;
+	case _LTK_TERM:
+		break;
 	}
 }
