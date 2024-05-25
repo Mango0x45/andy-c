@@ -5,6 +5,6 @@
 
 #include "parser.h"
 
-void exec_prog(struct program, arena *);
+int exec_prog(struct program, arena *);
 
 #endif /* !ANDY_EXEC_H */

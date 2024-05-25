@@ -28,7 +28,7 @@ parse_program(struct lexer l, arena *a)
 		}
 		if (t.kind == LTK_EOF)
 			break;
-		while (lexpeek(l).kind > _LTK_TERM)
+		while (lexpeek(&l).kind > _LTK_TERM)
 			(void)lexnext(&l);
 	}
 	return p;
@@ -44,7 +44,7 @@ parse_expr(struct lexer *l, arena *a)
 		.b.ctx = &ctx,
 	};
 
-	while (lexpeek(*l).kind == LTK_ARG) {
+	while (lexpeek(l).kind == LTK_ARG) {
 		struct lextok t = lexnext(l);
 		struct value v = {
 			.kind = VK_ARG,

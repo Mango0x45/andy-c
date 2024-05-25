@@ -13,7 +13,6 @@
 #include "exec.h"
 #include "lexer.h"
 #include "parser.h"
-#include "repr.h"
 #include "syntax.h"
 
 static bool interactive;
@@ -37,8 +36,12 @@ main(int, char **argv)
 void
 rloop(void)
 {
+	int ret = 0;
+	static char prompt[256];
+
 	for (;;) {
-		char *save = readline("Andy > ");
+		snprintf(prompt, sizeof(prompt), "[%d] > ", ret);
+		char *save = readline(prompt);
 
 		if (save == nullptr) {
 			fputs("^D\n", stderr);
@@ -64,7 +67,7 @@ rloop(void)
 		struct program *p = parse_program(lexer, &a);
 		if (p == nullptr)
 			warn("failed to parse");
-		exec_prog(*p, &a);
+		ret = exec_prog(*p, &a);
 		arena_free(&a);
 #else
 		struct lextok tok;

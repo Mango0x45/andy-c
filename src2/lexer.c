@@ -1,4 +1,3 @@
-#define DEBUG
 #include <string.h>
 
 #include <bitset.h>
@@ -11,9 +10,6 @@
 #include <unicode/string.h>
 
 #include "lexer.h"
-#ifdef DEBUG
-#	include "repr.h"
-#endif
 #include "syntax.h"
 
 #define report(...)                                                            \
@@ -39,6 +35,11 @@
 struct lextok
 lexnext(struct lexer *l)
 {
+	if (l->next.exists) {
+		l->next.exists = false;
+		return l->next.t;
+	}
+
 	int w;
 	for (rune ch; (w = ucsnext(&ch, &l->sv)) != 0;) {
 		if (rishws(ch))
@@ -91,22 +92,20 @@ lexnext(struct lexer *l)
 			tok.kind = LTK_ARG;
 		}
 
-#ifdef DEBUG
-		repr(tok);
-#endif
 		return tok;
 	}
 
-#ifdef DEBUG
-	repr((struct lextok){.kind = LTK_EOF});
-#endif
 	return (struct lextok){.kind = LTK_EOF};
 }
 
 struct lextok
-lexpeek(struct lexer l)
+lexpeek(struct lexer *l)
 {
-	return lexnext(&l);
+	if (!l->next.exists) {
+		l->next.t = lexnext(l);
+		l->next.exists = true;
+	}
+	return l->next.t;
 }
 
 bool

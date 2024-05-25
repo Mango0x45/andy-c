@@ -1,5 +1,6 @@
 #include <sys/wait.h>
 
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -8,16 +9,20 @@
 
 #include "exec.h"
 
-static void exec_expr(struct expr, arena *);
+static int exec_expr(struct expr, arena *);
 
-void
+int
 exec_prog(struct program p, arena *a)
 {
-	da_foreach (p, e)
-		exec_expr(*e, a);
+	da_foreach (p, e) {
+		int ret = exec_expr(*e, a);
+		if (ret != EXIT_SUCCESS)
+			return ret;
+	}
+	return EXIT_SUCCESS;
 }
 
-void
+int
 exec_expr(struct expr e, arena *a)
 {
 	ASSUME(e.kind == EK_BASIC);
@@ -35,7 +40,7 @@ exec_expr(struct expr e, arena *a)
 		argv[i] = arena_new(a, char, sv.len + 1);
 		if (argv[i] == nullptr)
 			err("arena_new:");
-		memcpy(argv[i], sv.p, sv.len);	
+		memcpy(argv[i], sv.p, sv.len);
 		argv[i][sv.len] = '\0';
 	}
 
@@ -46,8 +51,10 @@ exec_expr(struct expr e, arena *a)
 	case 0:
 		execvp(argv[0], argv);
 		err("%s: execvp:", argv[0]);
-	default:
-		if (waitpid(pid, nullptr, 0) == -1)
-			err("%d: waitpid:", (int)pid);
 	}
+
+	int ws;
+	if (waitpid(pid, &ws, 0) == -1)
+		err("%d: waitpid:", (int)pid);
+	return WIFEXITED(ws) ? WEXITSTATUS(ws) : UINT8_MAX + 1;
 }
