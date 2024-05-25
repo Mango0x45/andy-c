@@ -39,13 +39,16 @@ builtin_cd(char **argv, size_t n)
 int
 builtin_echo(char **argv, size_t n)
 {
-	for (size_t i = 1; i < n - 1; i++) {
-		if (printf("%s ", argv[i]) < 0)
+	for (size_t i = 1; i < n; i++) {
+		if (fputs(argv[i], stdout) == EOF)
 			return xwarn(argv[0], ":");
+		if (i < n - 1) {
+			if (putchar(' ') == EOF)
+				return xwarn(argv[0], ":");
+		}
 	}
-
-	if (puts(argv[n - 1]) == EOF)
-		return xwarn(argv[0], ":");
+	if (putchar('\n') == EOF)
+			return xwarn(argv[0], ":");
 
 	return EXIT_SUCCESS;
 }

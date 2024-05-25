@@ -60,7 +60,7 @@ void
 usage(void)
 {
 	fprintf(stderr,
-	        "Usage: %1$s [-fpr]\n"
+	        "Usage: %1$s [-afpr]\n"
 	        "       %1$s clean\n",
 	        argv0);
 	exit(EXIT_FAILURE);
@@ -75,10 +75,14 @@ main(int argc, char **argv)
 	argv0 = argv[0];
 
 	int opt;
-	while ((opt = getopt(argc, argv, "fpr")) != -1) {
+	while ((opt = getopt(argc, argv, "afpr")) != -1) {
 		switch (opt) {
 		case '?':
 			usage();
+		case 'a':
+			/* -a implies -f */
+			flags |= 1 << ('f' - 'a');
+			[[fallthrough]];
 		default:
 			flags |= 1 << (opt - 'a');
 		}
@@ -114,7 +118,7 @@ main(int argc, char **argv)
 		}
 
 		cmdadd(&c, "./vendor/mlib/make");
-		if (flagset('f'))
+		if (flagset('a'))
 			cmdadd(&c, "-f");
 		if (flagset('p'))
 			cmdadd(&c, "-p");

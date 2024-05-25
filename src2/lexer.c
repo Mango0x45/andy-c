@@ -54,6 +54,9 @@ lexnext(struct lexer *l)
 		} else if (ch == ';') {
 			tok.sv.len = 1;
 			tok.kind = LTK_SEMI;
+		} else if (ch == '|') {
+			tok.sv.len = 1;
+			tok.kind = LTK_PIPE;
 		} else if (ISLIT("&&")) {
 			TOKLIT("&&", LTK_LAND);
 			VSHFT(&l->sv, 1);

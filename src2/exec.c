@@ -10,13 +10,15 @@
 #include "builtin.h"
 #include "exec.h"
 
-static int exec_expr(struct expr, arena *);
+static int exec_expr(struct expr, struct ctx ctx);
+static int exec_pipe(struct expr, struct ctx ctx);
+static int exec_basic(struct expr, struct ctx ctx);
 
 int
-exec_prog(struct program p, arena *a)
+exec_prog(struct program p, struct ctx ctx)
 {
 	da_foreach (p, e) {
-		int ret = exec_expr(*e, a);
+		int ret = exec_expr(*e, ctx);
 		if (ret != EXIT_SUCCESS)
 			return ret;
 	}
@@ -24,14 +26,55 @@ exec_prog(struct program p, arena *a)
 }
 
 int
-exec_expr(struct expr e, arena *a)
+exec_expr(struct expr e, struct ctx ctx)
 {
-	ASSUME(e.kind == EK_BASIC);
 	ASSUME(e.kind != EK_INVAL);
+	switch (e.kind) {
+	case EK_BASIC:
+		return exec_basic(e, ctx);
+	case EK_BINOP:
+		switch (e.bo.op) {
+		case '|':
+			return exec_pipe(e, ctx);
+		}
+	case EK_INVAL:
+	}
 
+	return -1;
+}
+
+int
+exec_pipe(struct expr e, struct ctx ctx)
+{
+	int fds[2];
+	enum {
+		R,
+		W,
+	};
+
+	if (pipe(fds) == -1)
+		err("pipe:");
+
+	struct ctx lctx, rctx;
+	lctx = rctx = ctx;
+
+	lctx.fds[STDOUT_FILENO] = fds[W];
+	rctx.fds[STDIN_FILENO]  = fds[R];
+
+	exec_expr(*e.bo.lhs, lctx);
+	close(fds[W]);
+
+	int ret = exec_expr(*e.bo.rhs, rctx);
+	close(fds[R]);
+	return ret;
+}
+
+int
+exec_basic(struct expr e, struct ctx ctx)
+{
 	struct basic b = e.b;
 
-	char **argv = arena_new(a, char *, b.len + 1);
+	char **argv = arena_new(ctx.a, char *, b.len + 1);
 	if (argv == nullptr)
 		err("arena_new:");
 	argv[b.len] = nullptr;
@@ -40,7 +83,7 @@ exec_expr(struct expr e, arena *a)
 		ASSUME(b.buf[i].kind == VK_ARG);
 		struct u8view sv = b.buf[i].arg;
 
-		argv[i] = arena_new(a, char, sv.len + 1);
+		argv[i] = arena_new(ctx.a, char, sv.len + 1);
 		if (argv[i] == nullptr)
 			err("arena_new:");
 		memcpy(argv[i], sv.p, sv.len);
@@ -52,16 +95,24 @@ exec_expr(struct expr e, arena *a)
 		return fn(argv, b.len);
 
 	pid_t pid = fork();
-	switch (pid) {
-	case -1:
+	if (pid == -1)
 		err("fork:");
-	case 0:
-		execvp(argv[0], argv);
-		err("%s: execvp:", argv[0]);
+
+	/* Parent process */
+	if (pid != 0) {
+		int ws;
+		if (waitpid(pid, &ws, 0) == -1)
+			err("%d: waitpid:", (int)pid);
+		return WIFEXITED(ws) ? WEXITSTATUS(ws) : UINT8_MAX + 1;
 	}
 
-	int ws;
-	if (waitpid(pid, &ws, 0) == -1)
-		err("%d: waitpid:", (int)pid);
-	return WIFEXITED(ws) ? WEXITSTATUS(ws) : UINT8_MAX + 1;
+	for (int i = 0; i < (int)lengthof(ctx.fds); i++) {
+		if (ctx.fds[i] != i) {
+			if (dup2(ctx.fds[i], i) == -1)
+				err("dup2:");
+		}
+	}
+
+	execvp(argv[0], argv);
+	err("%s: execvp:", argv[0]);
 }

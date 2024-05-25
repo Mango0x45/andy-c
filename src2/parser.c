@@ -53,5 +53,23 @@ parse_expr(struct lexer *l, arena *a)
 		DAPUSH(&e.b, v);
 	}
 
-	return e.b.len == 0 ? (e.kind = EK_INVAL, e) : e;
+	if (e.b.len == 0) {
+		e.kind = EK_INVAL;
+		return e;
+	}
+
+	if (lexpeek(l).kind == LTK_PIPE) {
+		(void)lexnext(l);
+		struct expr cpy = e;
+		e.kind = EK_BINOP;
+		e.bo.op = '|';
+		e.bo.lhs = arena_new(a, struct expr, 1);
+		e.bo.rhs = arena_new(a, struct expr, 1);
+		if (e.bo.lhs == nullptr || e.bo.rhs == nullptr)
+			err("arena_new:");
+		*e.bo.lhs = cpy;
+		*e.bo.rhs = parse_expr(l, a);
+	}
+
+	return e;
 }

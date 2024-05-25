@@ -5,6 +5,11 @@
 
 #include "parser.h"
 
-int exec_prog(struct program, arena *);
+struct ctx {
+	int fds[3];
+	arena *a;
+};
+
+int exec_prog(struct program, struct ctx);
 
 #endif /* !ANDY_EXEC_H */

@@ -67,7 +67,11 @@ rloop(void)
 		struct program *p = parse_program(lexer, &a);
 		if (p == nullptr)
 			warn("failed to parse");
-		ret = exec_prog(*p, &a);
+		struct ctx ctx = {
+			.fds = {STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO},
+			.a = &a,
+		};
+		ret = exec_prog(*p, ctx);
 		arena_free(&a);
 #else
 		struct lextok tok;
