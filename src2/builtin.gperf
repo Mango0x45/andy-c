@@ -12,6 +12,7 @@
 
 struct lookup { char *name; builtin_fn fn; };
 %%
+cd,    builtin_cd
 echo,  builtin_echo
 false, builtin_false
 true,  builtin_true

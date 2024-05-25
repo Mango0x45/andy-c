@@ -12,6 +12,7 @@ struct lookup {
 
 builtin_fn lookup_builtin(const char *);
 
+int builtin_cd(char **, size_t);
 int builtin_echo(char **, size_t);
 int builtin_false(char **, size_t);
 int builtin_true(char **, size_t);
