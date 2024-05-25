@@ -1,0 +1,24 @@
+%enum
+%includes
+%language=ANSI-C
+%readonly-tables
+%struct-type
+
+%{
+#include "builtin.h"
+
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+%}
+
+struct lookup { char *name; builtin_fn fn; };
+%%
+echo,  builtin_echo
+false, builtin_false
+true,  builtin_true
+%%
+builtin_fn
+lookup_builtin(const char *s)
+{
+	const struct lookup *l = in_word_set(s, strlen(s));
+	return l == nullptr ? nullptr : l->fn;
+}
