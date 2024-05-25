@@ -135,6 +135,19 @@ main(int argc, char **argv)
 			procs = 8;
 		}
 
+		/* Build the builtins hash table */
+		if (flagset('f')
+		    || foutdated("src2/builtin.gen.c", "src2/builtin.gperf"))
+		{
+			cmdadd(&c, "gperf", "src2/builtin.gperf",
+			       "--output-file=src2/builtin.gen.c");
+			if (flagset('p'))
+				cmdput(c);
+			else
+				fprintf(stderr, "GPERF\t%s\n", "src2/builtin.gen.c");
+			CMDRC(c);
+		}
+
 		tpinit(&tp, procs);
 		for (size_t i = 0; i < g.gl_pathc; i++)
 			tpenq(&tp, work, g.gl_pathv[i], nullptr);
