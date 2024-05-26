@@ -109,7 +109,7 @@ exec_basic(struct expr e, struct ctx ctx)
 
 	builtin_fn fn = lookup_builtin(argv[0]);
 	if (fn != nullptr)
-		return fn(argv, b.len);
+		return fn(argv, b.len, ctx);
 
 	pid_t pid = fork();
 	if (pid == -1)

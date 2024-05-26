@@ -2,65 +2,73 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
-
-#include <errors.h>
 
 #include "builtin.h"
 
 static int
-xwarn(const char *argv0, const char *fmt, ...)
+xwarn(struct ctx ctx, const char *fmt, ...)
 {
-	const char *save = mlib_progname();
-	mlib_setprogname(argv0);
+	int save = errno;
+	FILE *fp = fdopen(ctx.fds[STDERR_FILENO], "w");
+	if (fp != nullptr) {
+		va_list ap;
+		va_start(ap, fmt);
+		flockfile(fp);
+		vfprintf(fp, fmt, ap);
+		if (fmt[strlen(fmt) - 1] == ':')
+			fprintf(fp, " %s", strerror(save));
+		fputc('\n', fp);
+		funlockfile(fp);
+		va_end(ap);
+	}
 
-	va_list ap;
-	va_start(ap, fmt);
-	vwarn(fmt, ap);
-	va_end(ap);
-
-	mlib_setprogname(save);
 	return EXIT_FAILURE;
 }
 
 int
-builtin_cd(char **argv, size_t n)
+builtin_cd(char **argv, size_t n, struct ctx ctx)
 {
 	if (n == 1) {
 		char *h = getenv("HOME");
 		if (h == nullptr)
-			return xwarn(argv[0], "$HOME environment variable not set");
-		return chdir(h) == -1 ? xwarn(argv[0], "%s:", h) : EXIT_SUCCESS;
+			return xwarn(ctx, "cd: $HOME environment variable not set");
+		return chdir(h) == -1 ? xwarn(ctx, "cd: %s:", h) : EXIT_SUCCESS;
 	}
 
-	return chdir(argv[1]) == -1 ? xwarn(argv[0], "%s:", argv[1]) : EXIT_SUCCESS;
+	return chdir(argv[1]) == -1 ? xwarn(ctx, "cd: %s:", argv[1]) : EXIT_SUCCESS;
 }
 
 int
-builtin_echo(char **argv, size_t n)
+builtin_echo(char **argv, size_t n, struct ctx ctx)
 {
+	FILE *fp = fdopen(ctx.fds[STDOUT_FILENO], "w");
+	if (fp == nullptr)
+		return xwarn(ctx, "echo:");
+
 	for (size_t i = 1; i < n; i++) {
-		if (fputs(argv[i], stdout) == EOF)
-			return xwarn(argv[0], ":");
+		if (fputs(argv[i], fp) == EOF)
+			return xwarn(ctx, "echo:");
 		if (i < n - 1) {
-			if (putchar(' ') == EOF)
-				return xwarn(argv[0], ":");
+			if (fputc(' ', fp) == EOF)
+				return xwarn(ctx, "echo:");
 		}
 	}
-	if (putchar('\n') == EOF)
-			return xwarn(argv[0], ":");
+	if (fputc('\n', fp) == EOF)
+		return xwarn(ctx, "echo:");
 
 	return EXIT_SUCCESS;
 }
 
 int
-builtin_false(char **, size_t)
+builtin_false(char **, size_t, struct ctx)
 {
 	return EXIT_FAILURE;
 }
 
 int
-builtin_true(char **, size_t)
+builtin_true(char **, size_t, struct ctx)
 {
 	return EXIT_SUCCESS;
 }
