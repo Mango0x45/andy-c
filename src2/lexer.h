@@ -3,7 +3,7 @@
 
 #include <mbstring.h>
 
-enum lex_tok_kind {
+enum lextokkind {
 	LTK_ARG,  /* Argument */
 	LTK_LAND, /* Logical AND */
 	LTK_LOR,  /* Logical OR */
@@ -20,7 +20,7 @@ enum lex_tok_kind {
 };
 
 struct lextok {
-	enum lex_tok_kind kind;
+	enum lextokkind kind;
 	struct u8view sv;
 };
 

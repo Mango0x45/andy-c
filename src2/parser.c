@@ -58,11 +58,14 @@ parse_expr(struct lexer *l, arena *a)
 		return e;
 	}
 
-	if (lexpeek(l).kind == LTK_PIPE) {
+	enum lextokkind ltk = lexpeek(l).kind;
+	if (ltk == LTK_PIPE || ltk == LTK_LAND || ltk == LTK_LOR) {
 		(void)lexnext(l);
 		struct expr cpy = e;
 		e.kind = EK_BINOP;
-		e.bo.op = '|';
+		e.bo.kind = ltk == LTK_PIPE ? BK_PIPE
+		          : ltk == LTK_LAND ? BK_AND
+		                            : BK_OR;
 		e.bo.lhs = arena_new(a, struct expr, 1);
 		e.bo.rhs = arena_new(a, struct expr, 1);
 		if (e.bo.lhs == nullptr || e.bo.rhs == nullptr)

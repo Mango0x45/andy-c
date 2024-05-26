@@ -16,6 +16,12 @@ enum exprkind {
 	EK_BINOP,      /* Binary operator */
 };
 
+enum binopkind {
+	BK_PIPE,
+	BK_AND,
+	BK_OR,
+};
+
 struct value {
 	enum valkind kind;
 	union {
@@ -28,7 +34,7 @@ struct basic {
 };
 
 struct binop {
-	rune op;
+	enum binopkind kind;
 	struct expr *lhs, *rhs;
 };
 

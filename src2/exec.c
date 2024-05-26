@@ -12,6 +12,7 @@
 
 static int exec_expr(struct expr, struct ctx ctx);
 static int exec_pipe(struct expr, struct ctx ctx);
+static int exec_tern(struct expr, struct ctx ctx);
 static int exec_basic(struct expr, struct ctx ctx);
 
 int
@@ -33,9 +34,12 @@ exec_expr(struct expr e, struct ctx ctx)
 	case EK_BASIC:
 		return exec_basic(e, ctx);
 	case EK_BINOP:
-		switch (e.bo.op) {
-		case '|':
+		switch (e.bo.kind) {
+		case BK_PIPE:
 			return exec_pipe(e, ctx);
+		case BK_AND:
+		case BK_OR:
+			return exec_tern(e, ctx);
 		}
 	case EK_INVAL:
 	}
@@ -67,6 +71,19 @@ exec_pipe(struct expr e, struct ctx ctx)
 	int ret = exec_expr(*e.bo.rhs, rctx);
 	close(fds[R]);
 	return ret;
+}
+
+int
+exec_tern(struct expr e, struct ctx ctx)
+{
+	int ret = exec_expr(*e.bo.lhs, ctx);
+
+	if (e.bo.kind == BK_AND)
+		return ret == EXIT_SUCCESS ? exec_expr(*e.bo.rhs, ctx) : ret;
+	if (ret == EXIT_SUCCESS)
+		return ret;
+	/* e.bo.kind == BK_OR && ret == EXIT_FAILURE */
+	return exec_expr(*e.bo.rhs, ctx);
 }
 
 int
