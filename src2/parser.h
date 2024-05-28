@@ -3,53 +3,67 @@
 
 #include <dynarr.h>
 #include <mbstring.h>
+#include <setjmp.h>
 
 #include "lexer.h"
 
-enum valkind {
-	VK_ARG, /* Unquoted string */
+enum valkind : int {
+	VK_WORD,
 };
 
-enum exprkind {
-	EK_INVAL = -1, /* Invalid expression */
-	EK_BASIC,      /* Basic command */
-	EK_BINOP,      /* Binary operator */
+enum unitkind : int {
+	UK_CMD,
 };
 
-enum binopkind {
-	BK_PIPE,
-	BK_AND,
-	BK_OR,
+enum stmtkind : int {
+	SK_ANDOR,
 };
 
 struct value {
 	enum valkind kind;
 	union {
-		struct u8view arg;
+		struct u8view w;
 	};
 };
 
-struct basic {
+struct cmd {
 	dafields(struct value)
 };
 
-struct binop {
-	enum binopkind kind;
-	struct expr *lhs, *rhs;
+struct unit {
+	enum unitkind kind;
+	union {
+		struct cmd c;
+	};
 };
 
-struct expr {
-	enum exprkind kind;
+struct pipe {
+	dafields(struct unit)
+};
+
+struct andor {
+	char op; /* ‘&’ or ‘|’ */
+	struct andor *l;
+	struct pipe *r;
+};
+
+struct stmt {
+	enum stmtkind kind;
 	union {
-		struct basic b;
-		struct binop bo;
+		struct andor ao;
 	};
 };
 
 struct program {
-	dafields(struct expr)
+	dafields(struct stmt)
 };
 
-struct program *parse_program(struct lexer, arena *);
+struct parser {
+	struct lexer *l;
+	arena *a;
+	jmp_buf *err;
+};
+
+struct program *parse_program(struct parser);
 
 #endif /* !ANDY_PARSER_H */

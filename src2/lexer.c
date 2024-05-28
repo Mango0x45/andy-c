@@ -16,8 +16,8 @@
 	do {                                                                       \
 		warn(__VA_ARGS__);                                                     \
 		tok.sv.len = l->sv.p - tok.sv.p;                                       \
-		tok.kind = LTK_ERR;                                                    \
-		return tok;                                                            \
+		tok.kind = -1;                                                         \
+		longjmp(*l->err, 1);                                                   \
 	} while (false)
 
 #define ISLIT(y) (strncmp(tok.sv.p, (y), sizeof(y) - 1) == 0)
@@ -37,7 +37,7 @@ lexnext(struct lexer *l)
 {
 	if (l->next.exists) {
 		l->next.exists = false;
-		return l->next.t;
+		return l->cur = l->next.t;
 	}
 
 	int w;
@@ -73,14 +73,14 @@ lexnext(struct lexer *l)
 				if (w > 0 && ch == '\\') {
 					n += w = ucsnext(&ch, &l->sv);
 					if (w == 0) {
-						report("%s:%zu: expected escape sequence but got end "
+						report("%s:%tu: expected escape sequence but got end "
 						       "of file",
 						       l->file, l->sv.p - l->base - 1);
 					} else if ((e = escape(ch, true)) == 0) {
 						VSHFT(&l->sv, -w);
 						struct u8view g, cpy = l->sv;
 						ucsgnext(&g, &cpy);
-						report("%s:%zu: invalid escape sequence ‘\\%.*s’",
+						report("%s:%tu: invalid escape sequence ‘\\%.*s’",
 						       l->file, l->sv.p - l->base - 1, SV_PRI_ARGS(g));
 					}
 				}
@@ -92,13 +92,16 @@ lexnext(struct lexer *l)
 
 			if ((tok.sv.len = n) == 0)
 				break;
-			tok.kind = LTK_ARG;
+			tok.kind = LTK_WORD;
 		}
 
-		return tok;
+		return l->cur = tok;
 	}
 
-	return (struct lextok){.kind = LTK_EOF};
+	return l->cur = (struct lextok){
+		.kind = LTK_EOF,
+		.sv.p = l->sv.p,
+	};
 }
 
 struct lextok

@@ -2,19 +2,19 @@
 #define ANDY_LEXER_H
 
 #include <mbstring.h>
+#include <setjmp.h>
 
 enum lextokkind {
-	LTK_ARG,  /* Argument */
 	LTK_LAND, /* Logical AND */
 	LTK_LOR,  /* Logical OR */
 	LTK_PIPE, /* Pipe */
+	LTK_WORD, /* World */
 
 	/* All enumeration values after this point represent something that could be
 	   the end of a unit */
 	_LTK_TERM,
 
 	LTK_EOF,  /* End of file */
-	LTK_ERR,  /* Lexing error */
 	LTK_NL,   /* End of line */
 	LTK_SEMI, /* Semicolon */
 };
@@ -28,10 +28,12 @@ struct lexer {
 	const char *file;
 	struct u8view sv;
 	const char8_t *base;
+	struct lextok cur;
 	struct {
 		bool exists;
 		struct lextok t;
 	} next;
+	jmp_buf *err;
 };
 
 [[nodiscard]] struct lextok lexnext(struct lexer *);
