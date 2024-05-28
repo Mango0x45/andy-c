@@ -32,7 +32,7 @@ parse_program(struct parser p)
 
 		struct lextok t = lexnext(p.l);
 		if (t.kind < _LTK_TERM) {
-			warn("%s:%tu: expected end of expression", p.l->file,
+			warn("%s:%tu: encountered unexpected token", p.l->file,
 			     t.sv.p - p.l->base);
 			longjmp(*p.err, 1);
 		}

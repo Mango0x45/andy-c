@@ -26,7 +26,7 @@
 #define TOKLIT(s, k)                                                           \
 	do {                                                                       \
 		tok.kind = (k);                                                        \
-		tok.sv = U8(s);                                                        \
+		tok.sv.len = sizeof(s) - 1;                                            \
 	} while (false)
 
 /* Test if a rune is valid in an argument */
@@ -99,9 +99,9 @@ lexnext(struct lexer *l)
 	}
 
 	return l->cur = (struct lextok){
-		.kind = LTK_EOF,
-		.sv.p = l->sv.p,
-	};
+			   .kind = LTK_EOF,
+			   .sv.p = l->sv.p,
+		   };
 }
 
 struct lextok
