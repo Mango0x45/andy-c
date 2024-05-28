@@ -9,14 +9,15 @@
 #include <unicode/prop.h>
 #include <unicode/string.h>
 
+#include "error.h"
 #include "lexer.h"
 #include "syntax.h"
 
-#define report(...)                                                            \
+#define report(hl, ...)                                                        \
 	do {                                                                       \
-		warn(__VA_ARGS__);                                                     \
 		tok.sv.len = l->sv.p - tok.sv.p;                                       \
 		tok.kind = -1;                                                         \
+		erremit(l->file, l->base, hl, hl.p - l->base, __VA_ARGS__);            \
 		longjmp(*l->err, 1);                                                   \
 	} while (false)
 
@@ -76,15 +77,19 @@ lexnext(struct lexer *l)
 				if (w > 0 && ch == '\\') {
 					n += w = ucsnext(&ch, &l->sv);
 					if (w == 0) {
-						report("%s:%tu: expected escape sequence but got end "
-						       "of file",
-						       l->file, l->sv.p - l->base - 1);
+						struct u8view hl = {
+							.p = l->sv.p - 1,
+							.len = 1,
+						};
+						report(hl,
+						       "expected escape sequence but got end of file");
 					} else if ((e = escape(ch, true)) == 0) {
 						VSHFT(&l->sv, -w);
 						struct u8view g, cpy = l->sv;
 						ucsgnext(&g, &cpy);
-						report("%s:%tu: invalid escape sequence ‘\\%.*s’",
-						       l->file, l->sv.p - l->base - 1, SV_PRI_ARGS(g));
+						VSHFT(&g, -1);
+						report(g, "invalid escape sequence ‘%.*s’",
+						       SV_PRI_ARGS(g));
 					}
 				}
 			} while (w > 0 && risarg(ch));

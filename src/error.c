@@ -80,15 +80,16 @@ erremit(const char *file, const char8_t *base, struct u8view hl, size_t off,
 	for (const char8_t *p = start; p < end; p++) {
 		if (p == hl.p)
 			fputs(_err, stderr);
+		else if (p == hl.p + hl.len)
+			fputs(_done, stderr);
 
 		if (*p == '\t')
 			fputs(TAB_AS_SPACES, stderr);
 		else
 			fputc(*p, stderr);
-
-		if (p == hl.p + hl.len || p == end - 1)
-			fputs(_done, stderr);
 	}
+	if (hl.p + hl.len == end)
+		fputs(_done, stderr);
 
 	fputc('\n', stderr);
 	fprintf(stderr, " %*c │ ", w, ' ');
