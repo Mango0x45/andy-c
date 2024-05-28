@@ -54,7 +54,8 @@ exec_stmt(struct stmt stmt, struct ctx ctx)
 int
 exec_andor(struct andor ao, struct ctx ctx)
 {
-	ASSUME(ao.r != nullptr);
+	if (ao.r == nullptr)
+		return EXIT_SUCCESS;
 
 	int ret;
 	switch (ao.op) {

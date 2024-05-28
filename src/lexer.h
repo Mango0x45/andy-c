@@ -8,7 +8,7 @@ enum lextokkind {
 	LTK_LAND, /* Logical AND */
 	LTK_LOR,  /* Logical OR */
 	LTK_PIPE, /* Pipe */
-	LTK_WORD, /* World */
+	LTK_WORD, /* Word */
 
 	/* All enumeration values after this point represent something that could be
 	   the end of a unit */

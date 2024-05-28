@@ -8,12 +8,15 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <alloc.h>
+#include <dynarr.h>
 #include <errors.h>
 #include <mbstring.h>
 #include <readline/history.h>
 #include <readline/readline.h>
 #include <unicode/prop.h>
 
+#include "error.h"
 #include "exec.h"
 #include "lexer.h"
 #include "parser.h"
@@ -22,17 +25,21 @@
 static bool interactive;
 
 static void rloop(void);
+static int readfile(FILE *);
 static struct u8view ucstrim(struct u8view);
 
 int
 main(int, char **argv)
 {
 	mlib_setprogname(argv[0]);
+	errinit();
 
 	setlocale(LC_ALL, "");
 
-	if ((interactive = isatty(STDOUT_FILENO)))
+	if ((interactive = isatty(STDIN_FILENO)))
 		rloop();
+	else
+		return readfile(stdin);
 
 	return EXIT_SUCCESS;
 }
@@ -102,6 +109,48 @@ empty:
 	if ((err = write_history(histfile)) != 0)
 		warn("write_history: %s: %s", histfile, strerror(err));
 	rl_clear_history();
+}
+
+int
+readfile(FILE *stream)
+{
+	size_t nr;
+	dynarr(char) bob = {.alloc = alloc_heap};
+	static char buf[BUFSIZ];
+
+	while ((nr = fread(buf, 1, sizeof(buf), stream)) > 0)
+		DAEXTEND(&bob, buf, nr);
+	if (ferror(stream))
+		err("ferror: <stdin>:");
+
+	jmp_buf onerr;
+	arena a = mkarena(0);
+	struct lexer lexer = {
+		.file = "<stdin>",
+		.sv = (struct u8view){bob.buf, bob.len},
+		.base = bob.buf,
+		.err = &onerr,
+	};
+
+	if (setjmp(onerr) != 0)
+		exit(EXIT_FAILURE);
+
+	struct program *p = parse_program((struct parser){
+		.l = &lexer,
+		.a = &a,
+		.err = &onerr,
+	});
+	if (p == nullptr)
+		warn("failed to parse");
+	struct ctx ctx = {
+		.fds = {STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO},
+		.a = &a,
+	};
+	int ret = exec_prog(*p, ctx);
+
+	arena_free(&a);
+	free(bob.buf);
+	return ret;
 }
 
 struct u8view

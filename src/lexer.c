@@ -51,6 +51,9 @@ lexnext(struct lexer *l)
 				w = ucsnext(&ch, &l->sv);
 			while (w > 0 && !risvws(ch));
 			tok.kind = LTK_NL;
+		} else if (risvws(ch)) {
+			tok.sv.len = w;
+			tok.kind = LTK_NL;
 		} else if (ch == ';') {
 			tok.sv.len = 1;
 			tok.kind = LTK_SEMI;

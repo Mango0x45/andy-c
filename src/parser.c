@@ -3,6 +3,7 @@
 #include <alloc.h>
 #include <errors.h>
 
+#include "error.h"
 #include "lexer.h"
 #include "parser.h"
 
@@ -27,19 +28,20 @@ parse_program(struct parser p)
 	prog->ctx = &ctx;
 
 	for (;;) {
-		struct stmt stmt = parse_stmt(p);
-		DAPUSH(prog, stmt);
-
-		struct lextok t = lexnext(p.l);
-		if (t.kind < _LTK_TERM) {
-			warn("%s:%tu: encountered unexpected token", p.l->file,
-			     t.sv.p - p.l->base);
-			longjmp(*p.err, 1);
-		}
+		struct lextok t;
 		while ((t = lexpeek(p.l)).kind > _LTK_TERM) {
 			if (t.kind == LTK_EOF)
 				goto out;
 			EAT;
+		}
+
+		struct stmt stmt = parse_stmt(p);
+		DAPUSH(prog, stmt);
+
+		if ((t = lexpeek(p.l)).kind < _LTK_TERM) {
+			erremit(p.l->file, p.l->base, t.sv, t.sv.p - p.l->base,
+			        "encountered unexpected token");
+			longjmp(*p.err, 1);
 		}
 	}
 
@@ -98,8 +100,10 @@ parse_andor(struct parser p)
 
 		pipe = parse_pipe(p);
 		if (pipe.len == 0) {
-			warn("%s:%tu: invalid right-hand side to ‘%.*s’ operator",
-			     p.l->file, p.l->cur.sv.p - p.l->base, SV_PRI_ARGS(t.sv));
+			erremit(p.l->file, p.l->base, p.l->cur.sv,
+			        p.l->cur.sv.p - p.l->base,
+			        "invalid right-hand side to ‘%.*s’ operator",
+			        SV_PRI_ARGS(t.sv));
 			longjmp(*p.err, 1);
 		}
 		if ((ao.r = arena_new(p.a, struct pipe, 1)) == nullptr)
@@ -137,8 +141,9 @@ parse_pipe(struct parser p)
 
 		u = parse_unit(p);
 		if (u.kind == -1) {
-			warn("%s:%tu: invalid right-hand side to ‘%.*s’ operator",
-			     p.l->file, p.l->cur.sv.p - p.l->base, 1, "|");
+			erremit(p.l->file, p.l->base, p.l->cur.sv,
+			        p.l->cur.sv.p - p.l->base,
+			        "invalid right-hand side to ‘%.*s’ operator", 1, "|");
 			longjmp(*p.err, 1);
 		}
 		DAPUSH(&pipe, u);
