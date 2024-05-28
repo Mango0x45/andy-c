@@ -1,3 +1,6 @@
+#include <errno.h>
+#include <fcntl.h>
+#include <limits.h>
 #include <locale.h>
 #include <setjmp.h>
 #include <stdio.h>
@@ -37,8 +40,19 @@ main(int, char **argv)
 void
 rloop(void)
 {
-	int ret = 0;
+	int err, ret = 0;
 	static char prompt[256];
+	static char histfile[PATH_MAX];
+
+	snprintf(histfile, sizeof(histfile), "%s/.local/share/.andy-hist",
+	         getenv("HOME"));
+	int fd = open(histfile, O_CREAT | O_RDONLY, 0666);
+	if (fd == -1 && errno != EEXIST)
+		warn("open: %s:", histfile);
+	close(fd);
+
+	if ((err = read_history(histfile)) != 0)
+		warn("read_history: %s: %s", histfile, strerror(err));
 
 	for (;;) {
 		snprintf(prompt, sizeof(prompt), "[%d] > ", ret);
@@ -85,6 +99,8 @@ empty:
 		free(save);
 	}
 
+	if ((err = write_history(histfile)) != 0)
+		warn("write_history: %s: %s", histfile, strerror(err));
 	rl_clear_history();
 }
 
