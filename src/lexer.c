@@ -17,7 +17,6 @@
 #define report(hl, ...)                                                        \
 	do {                                                                       \
 		tok.sv.len = l->sv.p - tok.sv.p;                                       \
-		tok.kind = -1;                                                         \
 		erremit(l->file, l->base, hl, hl.p - l->base, __VA_ARGS__);            \
 		longjmp(*l->err, 1);                                                   \
 	} while (false)
