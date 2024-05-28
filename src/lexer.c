@@ -1,3 +1,4 @@
+#include <setjmp.h>
 #include <string.h>
 
 #include <bitset.h>
