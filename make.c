@@ -126,8 +126,7 @@ main(int argc, char **argv)
 			cmdadd(&c, "-r");
 		CMDRC(c);
 
-		if ((err = glob("src2/*.c", 0, globerr, &g)) != 0
-		    && err != GLOB_NOMATCH)
+		if ((err = glob("src/*.c", 0, globerr, &g)) != 0 && err != GLOB_NOMATCH)
 		{
 			die("glob");
 		}
@@ -140,15 +139,14 @@ main(int argc, char **argv)
 		}
 
 		/* Build the builtins hash table */
-		if (flagset('f')
-		    || foutdated("src2/builtin.gen.c", "src2/builtin.gperf"))
+		if (flagset('f') || foutdated("src/builtin.gen.c", "src/builtin.gperf"))
 		{
-			cmdadd(&c, "gperf", "src2/builtin.gperf",
-			       "--output-file=src2/builtin.gen.c");
+			cmdadd(&c, "gperf", "src/builtin.gperf",
+			       "--output-file=src/builtin.gen.c");
 			if (flagset('p'))
 				cmdput(c);
 			else
-				fprintf(stderr, "GPERF\t%s\n", "src2/builtin.gen.c");
+				fprintf(stderr, "GPERF\t%s\n", "src/builtin.gen.c");
 			CMDRC(c);
 		}
 

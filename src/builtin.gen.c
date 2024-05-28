@@ -1,5 +1,5 @@
 /* ANSI-C code produced by gperf version 3.1 */
-/* Command-line: gperf --output-file=src2/builtin.gen.c src2/builtin.gperf  */
+/* Command-line: gperf --output-file=src/builtin.gen.c src/builtin.gperf  */
 /* Computed positions: -k'1' */
 
 #if !((' ' == 32) && ('!' == 33) && ('"' == 34) && ('#' == 35) \
@@ -29,12 +29,12 @@
 #error "gperf generated tables don't work with this execution character set. Please report a bug to <bug-gperf@gnu.org>."
 #endif
 
-#line 7 "src2/builtin.gperf"
+#line 7 "src/builtin.gperf"
 
 #include "builtin.h"
 
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
-#line 13 "src2/builtin.gperf"
+#line 13 "src/builtin.gperf"
 struct lookup { char *name; builtin_fn fn; };
 #include <string.h>
 /* maximum key range = 8, duplicates = 0 */
@@ -96,15 +96,15 @@ in_word_set (register const char *str, register size_t len)
   static const struct lookup wordlist[] =
     {
       {""}, {""},
-#line 15 "src2/builtin.gperf"
+#line 15 "src/builtin.gperf"
       {"cd",    builtin_cd},
       {""},
-#line 18 "src2/builtin.gperf"
+#line 18 "src/builtin.gperf"
       {"true",  builtin_true},
-#line 17 "src2/builtin.gperf"
+#line 17 "src/builtin.gperf"
       {"false", builtin_false},
       {""}, {""}, {""},
-#line 16 "src2/builtin.gperf"
+#line 16 "src/builtin.gperf"
       {"echo",  builtin_echo}
     };
 
@@ -122,7 +122,7 @@ in_word_set (register const char *str, register size_t len)
     }
   return 0;
 }
-#line 19 "src2/builtin.gperf"
+#line 19 "src/builtin.gperf"
 
 builtin_fn
 lookup_builtin(const char *)

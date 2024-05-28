@@ -1,26 +1,33 @@
+#include <errno.h>
+#include <fcntl.h>
+#include <limits.h>
 #include <locale.h>
+#include <setjmp.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <uchar.h>
+#include <string.h>
 #include <unistd.h>
 
+#include <errors.h>
+#include <mbstring.h>
 #include <readline/history.h>
 #include <readline/readline.h>
+#include <unicode/prop.h>
 
-#include "da.h"
+#include "exec.h"
 #include "lexer.h"
-#include "repr.h"
+#include "parser.h"
+#include "syntax.h"
 
 static bool interactive;
 
-static char *strtrim(char *);
 static void rloop(void);
+static struct u8view ucstrim(struct u8view);
 
 int
-main(int argc, char **argv)
+main(int, char **argv)
 {
-	(void)argc;
-	(void)argv;
+	mlib_setprogname(argv[0]);
 
 	setlocale(LC_ALL, "");
 
@@ -33,43 +40,88 @@ main(int argc, char **argv)
 void
 rloop(void)
 {
-	for (;;) {
-		char *p, *line;
-		struct lextoks toks;
+	int err, ret = 0;
+	static char prompt[256];
+	static char histfile[PATH_MAX];
 
-		if (!(line = readline("=> "))) {
+	snprintf(histfile, sizeof(histfile), "%s/.local/share/.andy-hist",
+	         getenv("HOME"));
+	int fd = open(histfile, O_CREAT | O_RDONLY, 0666);
+	if (fd == -1 && errno != EEXIST)
+		warn("open: %s:", histfile);
+	close(fd);
+
+	if ((err = read_history(histfile)) != 0)
+		warn("read_history: %s: %s", histfile, strerror(err));
+
+	for (;;) {
+		snprintf(prompt, sizeof(prompt), "[%d] > ", ret);
+		char *save = readline(prompt);
+
+		if (save == nullptr) {
 			fputs("^D\n", stderr);
 			break;
 		}
 
-		if (!*(p = strtrim(line)))
+		struct u8view line = {save, strlen(save)};
+		line = ucstrim(line);
+		if (line.len == 0)
 			goto empty;
 
-		add_history(p);
-		lexstr("<stdin>", (char8_t *)p, &toks);
+		((char8_t *)line.p)[line.len] = '\0';
+		add_history(line.p);
 
-		da_foreach (&toks, tok)
-			repr(*tok);
+		jmp_buf onerr;
+		arena a = mkarena(0);
+		struct lexer lexer = {
+			.file = "<stdin>",
+			.sv = line,
+			.base = line.p,
+			.err = &onerr,
+		};
+		if (setjmp(onerr) == 0) {
+			struct program *p = parse_program((struct parser){
+				.l = &lexer,
+				.a = &a,
+				.err = &onerr,
+			});
+			if (p == nullptr)
+				warn("failed to parse");
+			struct ctx ctx = {
+				.fds = {STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO},
+				.a = &a,
+			};
+			ret = exec_prog(*p, ctx);
+		}
+		arena_free(&a);
 
-		free(toks.buf);
 empty:
-		free(line);
+		free(save);
 	}
+
+	if ((err = write_history(histfile)) != 0)
+		warn("write_history: %s: %s", histfile, strerror(err));
+	rl_clear_history();
 }
 
-char *
-strtrim(char *s)
+struct u8view
+ucstrim(struct u8view sv)
 {
-	char *e;
+	int w;
+	for (rune ch; (w = ucsnext(&ch, &sv)) != 0;) {
+		if (!rishws(ch)) {
+			VSHFT(&sv, -w);
+			break;
+		}
+	}
 
-	while (*s == ' ' || *s == '\t')
-		s++;
-	for (e = s; *e; e++)
-		;
-	e--;
-	while (e >= s && (*e == ' ' || *e == '\t'))
-		e--;
-	e[1] = 0;
+	const char8_t *p = sv.p + sv.len;
+	for (rune ch; (w = ucsprev(&ch, (const char8_t **)&p, sv.p)) != 0;) {
+		if (!rishws(ch)) {
+			sv.len = p - sv.p + w;
+			break;
+		}
+	}
 
-	return s;
+	return sv;
 }
