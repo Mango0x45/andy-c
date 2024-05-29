@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-xs = ['#', '&', '|', ';']
+xs = ['#', '&', '|', ';', '{', '}']
 
 mask = 0
 for x in map(ord, xs):

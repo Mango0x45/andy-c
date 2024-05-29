@@ -13,6 +13,7 @@ static struct stmt parse_stmt(struct parser);
 static struct andor parse_andor(struct parser);
 static struct pipe parse_pipe(struct parser);
 static struct unit parse_unit(struct parser);
+static struct cmpnd parse_cmpnd(struct parser);
 static struct cmd parse_cmd(struct parser);
 static struct value parse_value(struct parser);
 
@@ -155,13 +156,51 @@ parse_pipe(struct parser p)
 static struct unit
 parse_unit(struct parser p)
 {
-	struct unit u = {
-		.kind = UK_CMD,
-		.c = parse_cmd(p),
-	};
-	if (u.c.len == 0)
-		u.kind = -1;
+	struct unit u;
+
+	if (lexpeek(p.l).kind == LTK_BRC_O) {
+		u.kind = UK_CMPND;
+		u.cp = parse_cmpnd(p);
+	} else {
+		u.kind = UK_CMD;
+		u.c = parse_cmd(p);
+		if (u.c.len == 0)
+			u.kind = -1;
+	}
+
 	return u;
+}
+
+static struct cmpnd
+parse_cmpnd(struct parser p)
+{
+	struct arena_ctx ctx = {.a = p.a};
+	struct cmpnd cmpnd = {
+		.alloc = alloc_arena,
+		.ctx = &ctx,
+	};
+
+	struct lextok open = lexnext(p.l);
+
+	for (;;) {
+		struct stmt stmt = parse_stmt(p);
+		DAPUSH(&cmpnd, stmt);
+		enum lextokkind k;
+		while ((k = lexpeek(p.l).kind) > _LTK_TERM) {
+			if (k == LTK_EOF) {
+				erremit(p.l->file, p.l->base, open.sv, open.sv.p - p.l->base,
+						"unterminated compound command");
+				longjmp(*p.err, 1);
+			}
+			EAT;
+		}
+		if (k == LTK_BRC_C) {
+			EAT;
+			break;
+		}
+	}
+
+	return cmpnd;
 }
 
 static struct cmd

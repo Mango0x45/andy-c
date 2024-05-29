@@ -26,6 +26,7 @@ static int exec_stmt(struct stmt, struct ctx);
 static int exec_andor(struct andor, struct ctx);
 static int exec_pipe(struct pipe, struct ctx);
 static int exec_unit(struct unit, struct ctx);
+static int exec_cmpnd(struct cmpnd, struct ctx);
 static int exec_cmd(struct cmd, struct ctx);
 static pid_t exec_cmd_async(struct cmd, struct ctx);
 static struct strarr valtostrs(struct value, alloc_fn, void *);
@@ -131,6 +132,8 @@ exec_unit(struct unit u, struct ctx ctx)
 	switch (u.kind) {
 	case UK_CMD:
 		return exec_cmd(u.c, ctx);
+	case UK_CMPND:
+		return exec_cmpnd(u.cp, ctx);
 	}
 	unreachable();
 }
@@ -170,6 +173,17 @@ exec_cmd_async(struct cmd c, struct ctx ctx)
 	}
 	execvp(argv.buf[0], argv.buf);
 	err("exec:");
+}
+
+int
+exec_cmpnd(struct cmpnd cp, struct ctx ctx)
+{
+	int ret = EXIT_SUCCESS;
+	da_foreach (cp, stmt) {
+		if ((ret = exec_stmt(*stmt, ctx)) != EXIT_SUCCESS)
+			break;
+	}
+	return ret;
 }
 
 int

@@ -31,7 +31,7 @@
 	} while (false)
 
 /* Test if a rune is valid in an argument */
-[[unsequenced, nodiscard]] static bool risarg(rune);
+[[unsequenced, nodiscard]] static bool risword(rune);
 
 struct lextok
 lexnext(struct lexer *l)
@@ -58,6 +58,12 @@ lexnext(struct lexer *l)
 		} else if (ch == ';') {
 			tok.sv.len = 1;
 			tok.kind = LTK_SEMI;
+		} else if (ch == '{') {
+			tok.sv.len = 1;
+			tok.kind = LTK_BRC_O;
+		} else if (ch == '}') {
+			tok.sv.len = 1;
+			tok.kind = LTK_BRC_C;
 		} else if (ISLIT("&&")) {
 			TOKLIT("&&", LTK_LAND);
 			VSHFT(&l->sv, 1);
@@ -92,7 +98,7 @@ lexnext(struct lexer *l)
 						       SV_PRI_ARGS(g));
 					}
 				}
-			} while (w > 0 && risarg(ch));
+			} while (w > 0 && risword(ch));
 			if (w > 0) {
 				n -= w;
 				VSHFT(&l->sv, -w);
@@ -107,9 +113,9 @@ lexnext(struct lexer *l)
 	}
 
 	return l->cur = (struct lextok){
-			   .kind = LTK_EOF,
-			   .sv.p = l->sv.p,
-		   };
+		.kind = LTK_EOF,
+		.sv.p = l->sv.p,
+	};
 }
 
 struct lextok
@@ -123,7 +129,7 @@ lexpeek(struct lexer *l)
 }
 
 bool
-risarg(rune ch)
+risword(rune ch)
 {
 	return !uprop_is_pat_ws(ch) && !rismeta(ch);
 }

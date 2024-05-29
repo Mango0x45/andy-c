@@ -13,6 +13,7 @@ enum valkind : int {
 
 enum unitkind : int {
 	UK_CMD,
+	UK_CMPND,
 };
 
 enum stmtkind : int {
@@ -30,10 +31,15 @@ struct cmd {
 	dafields(struct value)
 };
 
+struct cmpnd {
+	dafields(struct stmt)
+};
+
 struct unit {
 	enum unitkind kind;
 	union {
 		struct cmd c;
+		struct cmpnd cp;
 	};
 };
 
