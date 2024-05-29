@@ -57,22 +57,22 @@ diagemit(const char *type, const char *file, const char8_t *base,
 	const char8_t *start = base, *end;
 
 	{
+		/* We assume here that the input is null-terminated (which it is) */
+
 		rune ch;
-		struct u8view tmp = {base, off + 1};
-		while (ucsnext(&ch, &tmp) != 0) {
-			if (risvws(ch)) {
-				ln++;
-				start = tmp.p;
-			}
-		}
+		const char8_t *p = start;
 
 		for (;;) {
-			int w = ucstor(&ch, tmp.p);
-			if (ch == 0 || risvws(ch)) {
-				end = tmp.p;
+			int w = ucstor(&ch, p);
+			if (ch == 0 || (p >= hl.p + hl.len && risvws(ch))) {
+				end = p;
 				break;
 			}
-			tmp.p += w;
+			if (p < hl.p && risvws(ch)) {
+				ln++;
+				start = p;
+			}
+			p += w;
 		}
 	}
 
