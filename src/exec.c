@@ -22,13 +22,23 @@ struct strarr {
 	size_t n;
 };
 
+struct pload {
+	struct unit u;
+	struct ctx ctx;
+};
+
+struct cmpnd_pld {
+	struct cmpnd cmpnd;
+	struct ctx ctx;
+};
+
 static int exec_stmt(struct stmt, struct ctx);
 static int exec_andor(struct andor, struct ctx);
 static int exec_pipe(struct pipe, struct ctx);
 static int exec_unit(struct unit, struct ctx);
 static int exec_cmpnd(struct cmpnd, struct ctx);
 static int exec_cmd(struct cmd, struct ctx);
-static pid_t exec_cmd_async(struct cmd, struct ctx);
+
 static struct strarr valtostrs(struct value, alloc_fn, void *);
 
 int
@@ -85,18 +95,15 @@ exec_pipe(struct pipe p, struct ctx ctx)
 	if (p.len == 1)
 		return exec_unit(p.buf[0], ctx);
 
-	size_t cmdcnt = 0;
-	da_foreach (p, u) {
-		if (u->kind == UK_CMD)
-			cmdcnt++;
-	}
-
-	pid_t *pids = arena_new(ctx.a, pid_t, cmdcnt);
+	pid_t *pids = arena_new(ctx.a, pid_t, p.len);
 	if (pids == nullptr)
 		err("arena_new:");
 
 	int fds[2];
-	enum { R, W };
+	enum {
+		R,
+		W,
+	};
 
 	for (size_t i = 0; i < p.len; i++) {
 		struct ctx nctx = ctx;
@@ -107,23 +114,28 @@ exec_pipe(struct pipe p, struct ctx ctx)
 				err("pipe:");
 			nctx.fds[STDOUT_FILENO] = fds[W];
 		}
-		pids[i] = exec_cmd_async(p.buf[i].c, nctx);
 
-		if (nctx.fds[STDIN_FILENO] != ctx.fds[STDIN_FILENO])
-			close(nctx.fds[STDIN_FILENO]);
-		if (nctx.fds[STDOUT_FILENO] != ctx.fds[STDOUT_FILENO])
+		pid_t pid = fork();
+		if (pid == -1)
+			err("fork:");
+		if (pid == 0)
+			exit(exec_unit(p.buf[i], nctx));
+
+		pids[i] = pid;
+		if (i < p.len - 1)
 			close(nctx.fds[STDOUT_FILENO]);
+		if (i > 0)
+			close(nctx.fds[STDIN_FILENO]);
 	}
 
-	for (size_t i = 0; i < cmdcnt; i++) {
+	int ret;
+	for (size_t i = 0; i < p.len; i++) {
 		int ws;
 		if (waitpid(pids[i], &ws, 0) == -1)
 			err("waitpid:");
-		if (i == cmdcnt - 1)
-			return WIFEXITED(ws) ? WEXITSTATUS(ws) : UINT8_MAX + 1;
+		ret = WIFEXITED(ws) ? WEXITSTATUS(ws) : UINT8_MAX + 1;
 	}
-
-	unreachable();
+	return ret;
 }
 
 int
@@ -136,43 +148,6 @@ exec_unit(struct unit u, struct ctx ctx)
 		return exec_cmpnd(u.cp, ctx);
 	}
 	unreachable();
-}
-
-pid_t
-exec_cmd_async(struct cmd c, struct ctx ctx)
-{
-	arena a = mkarena(0);
-	struct arena_ctx a_ctx = {.a = &a};
-	struct strs argv = {
-		.alloc = alloc_arena,
-		.ctx = &a_ctx,
-	};
-
-	DAGROW(&argv, c.len + 1);
-	da_foreach (c, v) {
-		struct strarr xs = valtostrs(*v, alloc_arena, &a_ctx);
-		DAEXTEND(&argv, xs.p, xs.n);
-	}
-	DAPUSH(&argv, nullptr);
-
-	pid_t pid = fork();
-	if (pid == -1)
-		err("fork:");
-	if (pid != 0) {
-		arena_free(&a);
-		return pid;
-	}
-
-	for (int i = 0; i < (int)lengthof(ctx.fds); i++) {
-		if (ctx.fds[i] != i) {
-			close(i);
-			if (dup2(ctx.fds[i], i) == -1)
-				err("dup2:");
-			close(ctx.fds[i]);
-		}
-	}
-	execvp(argv.buf[0], argv.buf);
-	err("exec:");
 }
 
 int
@@ -206,24 +181,25 @@ exec_cmd(struct cmd c, struct ctx ctx)
 	pid_t pid = fork();
 	if (pid == -1)
 		err("fork:");
-	if (pid == 0) {
-		for (int i = 0; i < (int)lengthof(ctx.fds); i++) {
-			if (ctx.fds[i] != i) {
-				close(i);
-				if (dup2(ctx.fds[i], i) == -1)
-					err("dup2:");
-			}
-		}
-		execvp(argv.buf[0], argv.buf);
-		err("exec:");
+	if (pid != 0) {
+		arena_free(&a);
+
+		int ws;
+		if (waitpid(pid, &ws, 0) == -1)
+			err("waitpid:");
+		return WIFEXITED(ws) ? WEXITSTATUS(ws) : UINT8_MAX + 1;
 	}
 
-	int ws;
-	if (waitpid(pid, &ws, 0) == -1)
-		err("waitpid:");
-
-	arena_free(&a);
-	return WIFEXITED(ws) ? WEXITSTATUS(ws) : UINT8_MAX + 1;
+	for (int i = 0; i < (int)lengthof(ctx.fds); i++) {
+		if (ctx.fds[i] != i) {
+			close(i);
+			if (dup2(ctx.fds[i], i) == -1)
+				err("dup2:");
+			close(ctx.fds[i]);
+		}
+	}
+	execvp(argv.buf[0], argv.buf);
+	err("exec:");
 }
 
 struct strarr
