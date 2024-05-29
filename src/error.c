@@ -1,6 +1,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include <errors.h>
@@ -19,7 +20,8 @@
 static bool color;
 static const char *_bold = "\33[1m",
                   *_done = "\33[0m",
-                  *_err  = "\33[1;31m";
+                  *_err  = "\33[1;31m",
+                  *_warn = "\33[1;35m";
 /* clang-format on */
 
 void
@@ -31,19 +33,21 @@ errinit(void)
 	}
 
 	if (!color)
-		_bold = _done = _err = "";
+		_bold = _done = _err = _warn = "";
 }
 
 void
-erremit(const char *file, const char8_t *base, struct u8view hl, size_t off,
-        const char *fmt, ...)
+diagemit(const char *type, const char *file, const char8_t *base,
+         struct u8view hl, size_t off, const char *fmt, ...)
 {
+	const char *_type = streq(type, "warning") ? _warn : _err;
+
 	flockfile(stderr);
 
 	va_list ap;
 	va_start(ap, fmt);
-	fprintf(stderr, "%s%s: %s:%zu:%s %serror:%s ", _bold, mlib_progname(), file,
-	        off, _done, _err, _done);
+	fprintf(stderr, "%s%s: %s:%zu:%s %s%s:%s ", _bold, mlib_progname(), file,
+	        off, _done, _type, type, _done);
 	vfprintf(stderr, fmt, ap);
 	fputc('\n', stderr);
 	va_end(ap);
@@ -79,7 +83,7 @@ erremit(const char *file, const char8_t *base, struct u8view hl, size_t off,
 
 	for (const char8_t *p = start; p < end; p++) {
 		if (p == hl.p)
-			fputs(_err, stderr);
+			fputs(_type, stderr);
 		else if (p == hl.p + hl.len)
 			fputs(_done, stderr);
 
@@ -101,7 +105,7 @@ erremit(const char *file, const char8_t *base, struct u8view hl, size_t off,
 			fputc(' ', stderr);
 	}
 
-	fprintf(stderr, "%s^", _err);
+	fprintf(stderr, "%s^", _type);
 	for (size_t i = 1, cols = ucsgcnt(hl); i < cols; i++)
 		fputc('~', stderr);
 	fprintf(stderr, "%s\n", _done);
