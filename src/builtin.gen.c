@@ -125,9 +125,8 @@ in_word_set (register const char *str, register size_t len)
 #line 19 "src/builtin.gperf"
 
 builtin_fn
-lookup_builtin(const char *)
+lookup_builtin(const char *s)
 {
-	return nullptr;
-	// const struct lookup *l = in_word_set(s, strlen(s));
-	// return l == nullptr ? nullptr : l->fn;
+	const struct lookup *l = in_word_set(s, strlen(s));
+	return l == nullptr ? nullptr : l->fn;
 }

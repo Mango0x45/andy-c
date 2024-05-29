@@ -10,6 +10,7 @@
 #include <errors.h>
 #include <macros.h>
 
+#include "builtin.h"
 #include "exec.h"
 #include "parser.h"
 
@@ -176,7 +177,13 @@ exec_cmd(struct cmd c, struct ctx ctx)
 		struct strarr xs = valtostrs(*v, alloc_arena, &a_ctx);
 		DAEXTEND(&argv, xs.p, xs.n);
 	}
-	DAPUSH(&argv, nullptr);
+
+	builtin_fn bltn = lookup_builtin(argv.buf[0]);
+	if (bltn != nullptr) {
+		int ret = bltn(argv.buf, argv.len, ctx);
+		arena_free(&a);
+		return ret;
+	}
 
 	pid_t pid = fork();
 	if (pid == -1)
@@ -198,6 +205,8 @@ exec_cmd(struct cmd c, struct ctx ctx)
 			close(ctx.fds[i]);
 		}
 	}
+
+	DAPUSH(&argv, nullptr);
 	execvp(argv.buf[0], argv.buf);
 	err("exec:");
 }
