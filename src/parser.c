@@ -39,11 +39,22 @@ parse_program(struct parser p)
 		struct stmt stmt = parse_stmt(p);
 		DAPUSH(prog, stmt);
 
-		if ((t = lexpeek(p.l)).kind < _LTK_TERM) {
+		if ((t = lexpeek(p.l)).kind > _LTK_TERM)
+			continue;
+
+		switch (t.kind) {
+		case LTK_LAND:
+		case LTK_LOR:
+		case LTK_PIPE:
+			erremit(p.l->file, p.l->base, t.sv, t.sv.p - p.l->base,
+			        "‘%.*s’ operator missing left-hand side",
+			        SV_PRI_ARGS(t.sv));
+			break;
+		default:
 			erremit(p.l->file, p.l->base, t.sv, t.sv.p - p.l->base,
 			        "encountered unexpected token");
-			longjmp(*p.err, 1);
 		}
+		longjmp(*p.err, 1);
 	}
 
 out:
@@ -156,15 +167,17 @@ parse_pipe(struct parser p)
 static struct unit
 parse_unit(struct parser p)
 {
+	bool saw_bang = false;
 	struct unit u = {.neg = false};
-
-	struct lextok t;
+	struct lextok t, last;
 
 	while ((t = lexpeek(p.l)).kind == LTK_WORD && t.sv.len == 1
 	       && t.sv.p[0] == '!')
 	{
+		saw_bang = true;
 		u.neg = !u.neg;
 		EAT;
+		last = t;
 	}
 
 	if (lexpeek(p.l).kind == LTK_BRC_O) {
@@ -173,8 +186,14 @@ parse_unit(struct parser p)
 	} else {
 		u.kind = UK_CMD;
 		u.c = parse_cmd(p);
-		if (u.c.len == 0)
+		if (u.c.len == 0) {
+			if (saw_bang) {
+				erremit(p.l->file, p.l->base, last.sv, last.sv.p - p.l->base,
+				        "attempted negation without right-hand side oprand");
+				longjmp(*p.err, 1);
+			}
 			u.kind = -1;
+		}
 	}
 
 	return u;
