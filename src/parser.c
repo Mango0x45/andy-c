@@ -156,7 +156,16 @@ parse_pipe(struct parser p)
 static struct unit
 parse_unit(struct parser p)
 {
-	struct unit u;
+	struct unit u = {.neg = false};
+
+	struct lextok t;
+
+	while ((t = lexpeek(p.l)).kind == LTK_WORD && t.sv.len == 1
+	       && t.sv.p[0] == '!')
+	{
+		u.neg = !u.neg;
+		EAT;
+	}
 
 	if (lexpeek(p.l).kind == LTK_BRC_O) {
 		u.kind = UK_CMPND;
@@ -189,7 +198,7 @@ parse_cmpnd(struct parser p)
 		while ((k = lexpeek(p.l).kind) > _LTK_TERM) {
 			if (k == LTK_EOF) {
 				erremit(p.l->file, p.l->base, open.sv, open.sv.p - p.l->base,
-						"unterminated compound command");
+				        "unterminated compound command");
 				longjmp(*p.err, 1);
 			}
 			EAT;

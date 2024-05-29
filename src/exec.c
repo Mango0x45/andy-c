@@ -142,13 +142,18 @@ exec_pipe(struct pipe p, struct ctx ctx)
 int
 exec_unit(struct unit u, struct ctx ctx)
 {
+	int ret;
 	switch (u.kind) {
 	case UK_CMD:
-		return exec_cmd(u.c, ctx);
+		ret = exec_cmd(u.c, ctx);
+		break;
 	case UK_CMPND:
-		return exec_cmpnd(u.cp, ctx);
+		ret = exec_cmpnd(u.cp, ctx);
+		break;
 	}
-	unreachable();
+	if (!u.neg)
+		return ret;
+	return ret == EXIT_SUCCESS ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
 int

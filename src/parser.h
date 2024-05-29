@@ -37,6 +37,7 @@ struct cmpnd {
 
 struct unit {
 	enum unitkind kind;
+	bool neg;
 	union {
 		struct cmd c;
 		struct cmpnd cp;
