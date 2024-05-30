@@ -5,12 +5,12 @@
 #include <setjmp.h>
 
 enum lextokkind {
+	LTK_BRC_C, /* Closing brace */
+	LTK_BRC_O, /* Opening brace */
 	LTK_LAND,  /* Logical AND */
 	LTK_LOR,   /* Logical OR */
 	LTK_PIPE,  /* Pipe */
 	LTK_WORD,  /* Word */
-	LTK_BRC_O, /* Opening brace */
-	LTK_BRC_C, /* Closing brace */
 
 	/* All enumeration values after this point represent something that could be
 	   the end of a unit */
