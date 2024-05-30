@@ -81,6 +81,8 @@ diagemit(const char *type, const char *file, const char8_t *base,
 
 	fprintf(stderr, " %*zu │ ", w, ln);
 
+	/* TODO: Perform proper tabulation */
+
 	for (const char8_t *p = start; p < end; p++) {
 		if (p == hl.p)
 			fputs(_type, stderr);
