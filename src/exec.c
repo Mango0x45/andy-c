@@ -23,16 +23,6 @@ struct strarr {
 	size_t n;
 };
 
-struct pload {
-	struct unit u;
-	struct ctx ctx;
-};
-
-struct cmpnd_pld {
-	struct cmpnd cmpnd;
-	struct ctx ctx;
-};
-
 static int exec_stmt(struct stmt, struct ctx);
 static int exec_andor(struct andor, struct ctx);
 static int exec_pipe(struct pipe, struct ctx);
