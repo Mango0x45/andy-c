@@ -7,6 +7,7 @@
 #include "error.h"
 #include "lexer.h"
 #include "parser.h"
+#include "syntax.h"
 
 #define EAT (void)lexnext(p.l)
 
@@ -18,6 +19,7 @@ static struct cmpnd parse_cmpnd(struct parser);
 static struct cmd parse_cmd(struct parser);
 static struct value parse_value(struct parser);
 static struct list parse_list(struct parser);
+static struct u8view parse_word(struct parser);
 [[unsequenced]] static bool tokisval(enum lextokkind);
 
 struct program *
@@ -269,8 +271,7 @@ parse_value(struct parser p)
 	switch (t.kind) {
 	case LTK_WORD:
 		v.kind = VK_WORD;
-		v.w = t.sv;
-		EAT;
+		v.w = parse_word(p);
 		break;
 	case LTK_PAR_O:
 		v.kind = VK_LIST;
@@ -322,6 +323,22 @@ parse_list(struct parser p)
 	}
 
 	return l;
+}
+
+static struct u8view
+parse_word(struct parser p)
+{
+	struct lextok t = lexnext(p.l);
+	struct u8view sv = {};
+	char8_t *wp = arena_new(p.a, char8_t, t.sv.len);
+	if (wp == nullptr)
+		err("arena_new:");
+	for (size_t i = 0; i < t.sv.len; i++) {
+		wp[sv.len++] = t.sv.p[i] == '\\' ? escape(t.sv.p[++i], true)
+		                                 : t.sv.p[i];
+	}
+	sv.p = wp;
+	return sv;
 }
 
 bool

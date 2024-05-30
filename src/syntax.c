@@ -23,12 +23,12 @@ static constexpr rune newlines[] = {
 	0x2029, /* PARAGRAPH SEPARATOR */
 };
 
-static constexpr rune escapes[] = {
+static constexpr char escapes[] = {
 	['a'] = '\a', ['b'] = '\b', ['t'] = '\t',   ['n'] = '\n',  ['v'] = '\v',
 	['f'] = '\f', ['r'] = '\r', ['e'] = '\x1B', ['\\'] = '\\',
 };
 
-static constexpr rune escapes_meta[] = {
+static constexpr char escapes_meta[] = {
 	['a'] = '\a', ['b'] = '\b', ['t'] = '\t',   ['n'] = '\n',  ['v'] = '\v',
 	['f'] = '\f', ['r'] = '\r', ['e'] = '\x1B', ['\\'] = '\\', ['#'] = '#',
 	['&'] = '&',  ['|'] = '|',  [';'] = ';',    ['{'] = '{',   ['}'] = '}',

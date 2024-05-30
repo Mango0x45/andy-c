@@ -103,6 +103,14 @@ lexnext(struct lexer *l)
 						report(g, "invalid escape sequence ‘%.*s’",
 						       SV_PRI_ARGS(g));
 					}
+
+					/* If we got here, then we know that the W > 0 in the
+					   do/while condition holds.  What we don’t know however is
+					   if the risword(CH) condition holds, because we might have
+					   been escaping a metacharacter.  As an easy way around
+					   this, we can just set CH to something we know isn’t a
+					   metacharacter. */
+					ch = 0;
 				}
 			} while (w > 0 && risword(ch));
 			if (w > 0) {
