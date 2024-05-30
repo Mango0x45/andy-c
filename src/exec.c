@@ -208,7 +208,7 @@ exec_cmd(struct cmd c, struct ctx ctx)
 
 	DAPUSH(&argv, nullptr);
 	execvp(argv.buf[0], argv.buf);
-	err("exec:");
+	err("exec: %s:", argv.buf[0]);
 
 out:
 	arena_free(&a);
