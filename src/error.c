@@ -12,6 +12,7 @@
 #include "error.h"
 #include "syntax.h"
 
+#define TABSIZE       8
 #define TAB_AS_SPACES "        "
 
 [[unsequenced, nodiscard]] static int sizelen(size_t);
@@ -81,18 +82,21 @@ diagemit(const char *type, const char *file, const char8_t *base,
 
 	fprintf(stderr, " %*zu │ ", w, ln);
 
-	/* TODO: Perform proper tabulation */
-
+	int col = 0;
 	for (const char8_t *p = start; p < end; p++) {
 		if (p == hl.p)
 			fputs(_type, stderr);
 		else if (p == hl.p + hl.len)
 			fputs(_done, stderr);
 
-		if (*p == '\t')
-			fputs(TAB_AS_SPACES, stderr);
-		else
+		if (*p == '\t') {
+			int n = TABSIZE - col % TABSIZE;
+			fprintf(stderr, "%.*s", n, TAB_AS_SPACES);
+			col += n;
+		} else {
 			fputc(*p, stderr);
+			col++;
+		}
 	}
 	if (hl.p + hl.len == end)
 		fputs(_done, stderr);
@@ -100,11 +104,16 @@ diagemit(const char *type, const char *file, const char8_t *base,
 	fputc('\n', stderr);
 	fprintf(stderr, " %*c │ ", w, ' ');
 
+	col = 0;
 	for (const char8_t *p = start; p < hl.p; p++) {
-		if (*p == '\t')
-			fputs(TAB_AS_SPACES, stderr);
-		else
+		if (*p == '\t') {
+			int n = TABSIZE - col % TABSIZE;
+			fprintf(stderr, "%.*s", n, TAB_AS_SPACES);
+			col += n;
+		} else {
 			fputc(' ', stderr);
+			col++;
+		}
 	}
 
 	fprintf(stderr, "%s^", _type);
