@@ -43,11 +43,15 @@ parse_program(struct parser p)
 			continue;
 
 		switch (t.kind) {
+		case LTK_BRC_C:
+			erremit(p.l->file, p.l->base, t.sv, t.sv.p - p.l->base,
+			        "compound unit missing opening brace");
+			break;
 		case LTK_LAND:
 		case LTK_LOR:
 		case LTK_PIPE:
 			erremit(p.l->file, p.l->base, t.sv, t.sv.p - p.l->base,
-			        "‘%.*s’ operator missing left-hand side",
+			        "‘%.*s’ operator missing left-hand side oprand",
 			        SV_PRI_ARGS(t.sv));
 			break;
 		default:
@@ -112,9 +116,8 @@ parse_andor(struct parser p)
 
 		pipe = parse_pipe(p);
 		if (pipe.len == 0) {
-			erremit(p.l->file, p.l->base, p.l->cur.sv,
-			        p.l->cur.sv.p - p.l->base,
-			        "invalid right-hand side to ‘%.*s’ operator",
+			erremit(p.l->file, p.l->base, t.sv, t.sv.p - p.l->base,
+			        "‘%.*s’ operator missing right-hand side oprand",
 			        SV_PRI_ARGS(t.sv));
 			longjmp(*p.err, 1);
 		}
@@ -144,7 +147,8 @@ parse_pipe(struct parser p)
 		while (lexpeek(p.l).kind == LTK_NL)
 			EAT;
 
-		if (lexpeek(p.l).kind != LTK_PIPE)
+		struct lextok t = lexpeek(p.l);
+		if (t.kind != LTK_PIPE)
 			break;
 		EAT;
 
@@ -153,9 +157,8 @@ parse_pipe(struct parser p)
 
 		u = parse_unit(p);
 		if (u.kind == -1) {
-			erremit(p.l->file, p.l->base, p.l->cur.sv,
-			        p.l->cur.sv.p - p.l->base,
-			        "invalid right-hand side to ‘%.*s’ operator", 1, "|");
+			erremit(p.l->file, p.l->base, t.sv, t.sv.p - p.l->base,
+			        "‘%.*s’ operator missing right-hand side oprand", 1, "|");
 			longjmp(*p.err, 1);
 		}
 		DAPUSH(&pipe, u);
@@ -217,7 +220,7 @@ parse_cmpnd(struct parser p)
 		while ((k = lexpeek(p.l).kind) > _LTK_TERM) {
 			if (k == LTK_EOF) {
 				erremit(p.l->file, p.l->base, open.sv, open.sv.p - p.l->base,
-				        "unterminated compound command");
+				        "unterminated compound unit");
 				longjmp(*p.err, 1);
 			}
 			EAT;
