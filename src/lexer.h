@@ -9,6 +9,8 @@ enum lextokkind {
 	LTK_BRC_O, /* Opening brace */
 	LTK_LAND,  /* Logical AND */
 	LTK_LOR,   /* Logical OR */
+	LTK_PAR_C, /* Closing parenthesis */
+	LTK_PAR_O, /* Opening parenthesis */
 	LTK_PIPE,  /* Pipe */
 	LTK_WORD,  /* Word */
 

@@ -16,6 +16,7 @@ static struct unit parse_unit(struct parser);
 static struct cmpnd parse_cmpnd(struct parser);
 static struct cmd parse_cmd(struct parser);
 static struct value parse_value(struct parser);
+static struct list parse_list(struct parser);
 
 struct program *
 parse_program(struct parser p)
@@ -46,6 +47,10 @@ parse_program(struct parser p)
 		case LTK_BRC_C:
 			erremit(p.l->file, p.l->base, t.sv, t.sv.p - p.l->base,
 			        "compound unit missing opening brace");
+			break;
+		case LTK_PAR_C:
+			erremit(p.l->file, p.l->base, t.sv, t.sv.p - p.l->base,
+			        "value list missing opening brace");
 			break;
 		case LTK_LAND:
 		case LTK_LOR:
@@ -256,15 +261,48 @@ parse_cmd(struct parser p)
 static struct value
 parse_value(struct parser p)
 {
-	struct value v = {
-		.kind = VK_WORD,
-	};
+	struct value v = {};
 	struct lextok t = lexpeek(p.l);
-	if (t.kind != LTK_WORD)
-		v.kind = -1;
-	else {
+
+	switch (t.kind) {
+	case LTK_WORD:
+		v.kind = VK_WORD;
 		v.w = t.sv;
 		EAT;
+		break;
+	case LTK_PAR_O:
+		v.kind = VK_LIST;
+		v.l = parse_list(p);
+		break;
+	default:
+		v.kind = -1;
 	}
+
 	return v;
+}
+
+static struct list
+parse_list(struct parser p)
+{
+	struct lextok open = lexnext(p.l);
+	struct arena_ctx ctx = {.a = p.a};
+	struct list l = {
+		.alloc = alloc_arena,
+		.ctx = &ctx,
+	};
+
+	for (;;) {
+		struct value v = parse_value(p);
+		if (v.kind == -1)
+			break;
+		DAPUSH(&l, v);
+	}
+
+	if (lexnext(p.l).kind != LTK_PAR_C) {
+		erremit(p.l->file, p.l->base, open.sv, open.sv.p - p.l->base,
+		        "unterminated value list");
+		longjmp(*p.err, 1);
+	}
+
+	return l;
 }

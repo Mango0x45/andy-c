@@ -219,6 +219,19 @@ valtostrs(struct value v, alloc_fn alloc, void *ctx)
 		                alignof(char));
 		((char *)memcpy(sa.p[0], v.w.p, v.w.len))[v.w.len] = '\0';
 		break;
+	case VK_LIST:
+		sa.n = 0;
+		sa.p = nullptr;
+
+		da_foreach (v.l, _v) {
+			struct strarr _sa = valtostrs(*_v, alloc, ctx);
+			sa.p = alloc(ctx, sa.p, sa.n, sa.n + _sa.n, sizeof(char *),
+			             alignof(char *));
+			for (size_t i = 0; i < _sa.n; i++)
+				sa.p[sa.n + i] = _sa.p[i];
+			sa.n += _sa.n;
+		}
+		break;
 	default:
 		unreachable();
 	}

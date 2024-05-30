@@ -73,6 +73,12 @@ lexnext(struct lexer *l)
 		} else if (ch == '|') {
 			tok.sv.len = 1;
 			tok.kind = LTK_PIPE;
+		} else if (ch == '(') {
+			tok.sv.len = 1;
+			tok.kind = LTK_PAR_O;
+		} else if (ch == ')') {
+			tok.sv.len = 1;
+			tok.kind = LTK_PAR_C;
 		} else {
 			size_t n = 0;
 			VSHFT(&l->sv, -w);

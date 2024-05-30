@@ -8,6 +8,7 @@
 #include "lexer.h"
 
 enum valkind : int {
+	VK_LIST,
 	VK_WORD,
 };
 
@@ -20,10 +21,15 @@ enum stmtkind : int {
 	SK_ANDOR,
 };
 
+struct list {
+	dafields(struct value)
+};
+
 struct value {
 	enum valkind kind;
 	union {
 		struct u8view w;
+		struct list l;
 	};
 };
 
