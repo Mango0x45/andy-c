@@ -32,6 +32,7 @@ struct lexer {
 	const char *file;
 	struct u8view sv;
 	const char8_t *base;
+	struct lextok cur;
 	struct {
 		bool exists;
 		struct lextok t;

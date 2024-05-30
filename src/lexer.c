@@ -38,7 +38,7 @@ lexnext(struct lexer *l)
 {
 	if (l->next.exists) {
 		l->next.exists = false;
-		return l->next.t;
+		return l->cur = l->next.t;
 	}
 
 	int w;
@@ -115,10 +115,10 @@ lexnext(struct lexer *l)
 			tok.kind = LTK_WORD;
 		}
 
-		return tok;
+		return l->cur = tok;
 	}
 
-	return (struct lextok){
+	return l->cur = (struct lextok){
 		.kind = LTK_EOF,
 		.sv.p = l->sv.p,
 	};

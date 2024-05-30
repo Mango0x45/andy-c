@@ -160,6 +160,7 @@ exec_cmpnd(struct cmpnd cp, struct ctx ctx)
 int
 exec_cmd(struct cmd c, struct ctx ctx)
 {
+	int ret;
 	arena a = mkarena(0);
 	struct arena_ctx a_ctx = {.a = &a};
 	struct strs argv = {
@@ -170,26 +171,30 @@ exec_cmd(struct cmd c, struct ctx ctx)
 	DAGROW(&argv, c.len + 1);
 	da_foreach (c, v) {
 		struct strarr xs = valtostrs(*v, alloc_arena, &a_ctx);
-		DAEXTEND(&argv, xs.p, xs.n);
+		if (xs.n > 0)
+			DAEXTEND(&argv, xs.p, xs.n);
+	}
+
+	if (argv.len == 0) {
+		ret = EXIT_SUCCESS;
+		goto out;
 	}
 
 	builtin_fn bltn = lookup_builtin(argv.buf[0]);
 	if (bltn != nullptr) {
-		int ret = bltn(argv.buf, argv.len, ctx);
-		arena_free(&a);
-		return ret;
+		ret = bltn(argv.buf, argv.len, ctx);
+		goto out;
 	}
 
 	pid_t pid = fork();
 	if (pid == -1)
 		err("fork:");
 	if (pid != 0) {
-		arena_free(&a);
-
 		int ws;
 		if (waitpid(pid, &ws, 0) == -1)
 			err("waitpid:");
-		return WIFEXITED(ws) ? WEXITSTATUS(ws) : UINT8_MAX + 1;
+		ret = WIFEXITED(ws) ? WEXITSTATUS(ws) : UINT8_MAX + 1;
+		goto out;
 	}
 
 	for (int i = 0; i < (int)lengthof(ctx.fds); i++) {
@@ -204,6 +209,10 @@ exec_cmd(struct cmd c, struct ctx ctx)
 	DAPUSH(&argv, nullptr);
 	execvp(argv.buf[0], argv.buf);
 	err("exec:");
+
+out:
+	arena_free(&a);
+	return ret;
 }
 
 struct strarr
@@ -230,6 +239,25 @@ valtostrs(struct value v, alloc_fn alloc, void *ctx)
 			for (size_t i = 0; i < _sa.n; i++)
 				sa.p[sa.n + i] = _sa.p[i];
 			sa.n += _sa.n;
+		}
+		break;
+	case VK_CONCAT:
+		struct strarr lhs, rhs;
+		lhs = valtostrs(*v.c.l, alloc, ctx);
+		rhs = valtostrs(*v.c.r, alloc, ctx);
+		sa.n = lhs.n * rhs.n;
+		sa.p = alloc(ctx, nullptr, 0, sa.n, sizeof(char *), alignof(char *));
+
+		for (size_t i = 0, k = 0; i < lhs.n; i++) {
+			size_t n = strlen(lhs.p[i]);
+			for (size_t j = 0; j < rhs.n; j++, k++) {
+				size_t m = strlen(rhs.p[j]);
+				sa.p[k] = alloc(ctx, nullptr, 0, n + m + 1, sizeof(char),
+				                alignof(char));
+				memcpy(sa.p[k] + 0, lhs.p[i], n);
+				memcpy(sa.p[k] + n, rhs.p[j], m);
+				sa.p[k][n + m] = 0;
+			}
 		}
 		break;
 	default:

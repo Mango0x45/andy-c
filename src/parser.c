@@ -2,6 +2,7 @@
 
 #include <alloc.h>
 #include <errors.h>
+#include <macros.h>
 
 #include "error.h"
 #include "lexer.h"
@@ -17,6 +18,7 @@ static struct cmpnd parse_cmpnd(struct parser);
 static struct cmd parse_cmd(struct parser);
 static struct value parse_value(struct parser);
 static struct list parse_list(struct parser);
+[[unsequenced]] static bool tokisval(enum lextokkind);
 
 struct program *
 parse_program(struct parser p)
@@ -276,6 +278,21 @@ parse_value(struct parser p)
 		break;
 	default:
 		v.kind = -1;
+		return v;
+	}
+
+	t = p.l->cur;
+	struct lextok next = lexpeek(p.l);
+	if (tokisval(next.kind) && t.sv.p + t.sv.len == next.sv.p) {
+		struct value _v = v;
+		v.kind = VK_CONCAT;
+		v.c.l = arena_new(p.a, struct value, 1);
+		v.c.r = arena_new(p.a, struct value, 1);
+		if (v.c.l == nullptr || v.c.r == nullptr)
+			err("arena_new:");
+		*v.c.l = _v;
+		*v.c.r = parse_value(p);
+		ASSUME(v.c.r->kind != -1);
 	}
 
 	return v;
@@ -305,4 +322,10 @@ parse_list(struct parser p)
 	}
 
 	return l;
+}
+
+bool
+tokisval(enum lextokkind k)
+{
+	return k == LTK_WORD || k == LTK_PAR_O;
 }
