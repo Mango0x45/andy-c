@@ -1,4 +1,7 @@
 #include <setjmp.h>
+#if UNICODE_BROKEN
+#	include <stdio.h>
+#endif
 #include <string.h>
 
 #include <bitset.h>
@@ -83,25 +86,72 @@ lexnext(struct lexer *l)
 			size_t n = 0;
 			VSHFT(&l->sv, -w);
 			do {
-				char8_t e;
+				rune e;
 				n += w = ucsnext(&ch, &l->sv);
 
 				if (w > 0 && ch == '\\') {
-					n += w = ucsnext(&ch, &l->sv);
+					struct u8view hl = {
+						.p = l->sv.p - 1,
+						.len = 1,
+					};
+
+					hl.len += w = ucsnext(&ch, &l->sv);
+
 					if (w == 0) {
-						struct u8view hl = {
-							.p = l->sv.p - 1,
-							.len = 1,
-						};
 						report(hl,
 						       "expected escape sequence but got end of file");
+					} else if (ch == 'u') {
+						hl.len += w = ucsnext(&ch, &l->sv);
+						if (w == 0 || ch != '{') {
+							report(hl, "Unicode escape sequence missing "
+							           "opening brace");
+						}
+						for (;;) {
+							hl.len += w = ucsnext(&ch, &l->sv);
+							if (w == 0 || ch == '}')
+								break;
+							if (!uprop_is_ahex(ch)) {
+								VSHFT(&l->sv, -w);
+								struct u8view g, cpy = l->sv;
+								ucsgnext(&g, &cpy);
+								hl.len += g.len;
+
+								/* TODO: Make printing errors properly handle
+								   multibyte characters */
+#if UNICODE_BROKEN
+								fprintf(stderr,
+								        "non-hexadecimal digit ‘%.*s’ in "
+								        "Unicode escape sequence\n",
+								        SV_PRI_ARGS(g));
+								longjmp(*l->err, 1);
+#else
+								report(hl,
+								       "non-hexadecimal digit ‘%.*s’ in "
+								       "Unicode escape sequence",
+								       SV_PRI_ARGS(g));
+#endif
+							}
+						}
+						if (w == 0)
+							report(hl, "unterminated Unicode escape sequence");
+						if (l->sv.p[-2] == '{')
+							report(hl, "empty Unicode escape sequence");
 					} else if ((e = escape(ch, true)) == 0) {
 						VSHFT(&l->sv, -w);
 						struct u8view g, cpy = l->sv;
 						ucsgnext(&g, &cpy);
-						VSHFT(&g, -1);
-						report(g, "invalid escape sequence ‘%.*s’",
-						       SV_PRI_ARGS(g));
+						hl.len += g.len;
+
+						/* TODO: Make printing errors properly handle multibyte
+						   characters */
+#if UNICODE_BROKEN
+						fprintf(stderr, "invalid escape sequence ‘%.*s’\n",
+						        SV_PRI_ARGS(hl));
+						longjmp(*l->err, 1);
+#else
+						report(hl, "invalid escape sequence ‘%.*s’",
+						       SV_PRI_ARGS(hl));
+#endif
 					}
 
 					/* If we got here, then we know that the W > 0 in the
@@ -111,6 +161,7 @@ lexnext(struct lexer *l)
 					   this, we can just set CH to something we know isn’t a
 					   metacharacter. */
 					ch = 0;
+					n += hl.len;
 				}
 			} while (w > 0 && risword(ch));
 			if (w > 0) {
