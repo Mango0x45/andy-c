@@ -1,7 +1,4 @@
 #include <setjmp.h>
-#if UNICODE_BROKEN
-#	include <stdio.h>
-#endif
 #include <string.h>
 
 #include <bitset.h>
@@ -106,6 +103,7 @@ lexnext(struct lexer *l)
 						   range (0 <= N <= 0x10FFFF) */
 						hl.len += w = ucsnext(&ch, &l->sv);
 						if (w == 0 || ch != '{') {
+							hl.len -= w;
 							report(hl, "Unicode escape sequence missing "
 							           "opening brace");
 						}
@@ -113,26 +111,20 @@ lexnext(struct lexer *l)
 							hl.len += w = ucsnext(&ch, &l->sv);
 							if (w == 0 || ch == '}')
 								break;
+							if (risvws(ch)) {
+								hl.len -= w;
+								report(hl,
+								       "unterminated Unicode escape sequence");
+							}
 							if (!uprop_is_ahex(ch)) {
 								VSHFT(&l->sv, -w);
 								struct u8view g, cpy = l->sv;
 								ucsgnext(&g, &cpy);
-								hl.len += g.len;
-
-								/* TODO: Make printing errors properly handle
-								   multibyte characters */
-#if UNICODE_BROKEN
-								fprintf(stderr,
-								        "non-hexadecimal digit ‘%.*s’ in "
-								        "Unicode escape sequence\n",
-								        SV_PRI_ARGS(g));
-								longjmp(*l->err, 1);
-#else
+								hl.len += g.len - w;
 								report(hl,
 								       "non-hexadecimal digit ‘%.*s’ in "
 								       "Unicode escape sequence",
 								       SV_PRI_ARGS(g));
-#endif
 							}
 						}
 						if (w == 0)
@@ -143,18 +135,9 @@ lexnext(struct lexer *l)
 						VSHFT(&l->sv, -w);
 						struct u8view g, cpy = l->sv;
 						ucsgnext(&g, &cpy);
-						hl.len += g.len;
-
-						/* TODO: Make printing errors properly handle multibyte
-						   characters */
-#if UNICODE_BROKEN
-						fprintf(stderr, "invalid escape sequence ‘%.*s’\n",
-						        SV_PRI_ARGS(hl));
-						longjmp(*l->err, 1);
-#else
+						hl.len += g.len - w;
 						report(hl, "invalid escape sequence ‘%.*s’",
 						       SV_PRI_ARGS(hl));
-#endif
 					}
 
 					/* If we got here, then we know that the W > 0 in the
@@ -180,10 +163,12 @@ lexnext(struct lexer *l)
 		return l->cur = tok;
 	}
 
+	/* clang-format off */
 	return l->cur = (struct lextok){
 		.kind = LTK_EOF,
 		.sv.p = l->sv.p,
 	};
+	/* clang-format on */
 }
 
 struct lextok

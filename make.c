@@ -216,7 +216,7 @@ work(void *p)
 		else
 			env_or_default(&sv, "CFLAGS", CFLAGS_DBG);
 		cmdaddv(&c, sv.buf, sv.len);
-		cmdadd(&c, CFLAGS_ALL, "-DUNICODE_BROKEN=1", "-o", dst, "-c", src);
+		cmdadd(&c, CFLAGS_ALL, "-o", dst, "-c", src);
 		if (flagset('p'))
 			cmdput(c);
 		else

@@ -120,6 +120,7 @@ readfile(FILE *stream)
 
 	while ((nr = fread(buf, 1, sizeof(buf), stream)) > 0)
 		DAEXTEND(&bob, buf, nr);
+	DAPUSH(&bob, 0);
 	if (ferror(stream))
 		err("ferror: <stdin>:");
 
@@ -127,7 +128,7 @@ readfile(FILE *stream)
 	arena a = mkarena(0);
 	struct lexer lexer = {
 		.file = "<stdin>",
-		.sv = (struct u8view){bob.buf, bob.len},
+		.sv = (struct u8view){bob.buf, bob.len - 1},
 		.base = bob.buf,
 		.err = &onerr,
 	};

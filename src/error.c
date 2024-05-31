@@ -7,13 +7,14 @@
 #include <errors.h>
 #include <macros.h>
 #include <mbstring.h>
+#include <unicode/prop.h>
 #include <unicode/string.h>
 
 #include "error.h"
 #include "syntax.h"
 
-#define TABSIZE       8
-#define TAB_AS_SPACES "        "
+#define TABSIZE 8
+#define SPACES  "        "
 
 [[unsequenced, nodiscard]] static int sizelen(size_t);
 
@@ -82,20 +83,21 @@ diagemit(const char *type, const char *file, const char8_t *base,
 
 	fprintf(stderr, " %*zu │ ", w, ln);
 
-	int col = 0;
-	for (const char8_t *p = start; p < end; p++) {
-		if (p == hl.p)
+	rune ch;
+	struct u8view line = {start, end - start};
+	for (int w, col = 0; (w = ucsnext(&ch, &line)) != 0;) {
+		if (line.p - w == hl.p)
 			fputs(_type, stderr);
-		else if (p == hl.p + hl.len)
+		if (line.p - w == hl.p + hl.len)
 			fputs(_done, stderr);
 
-		if (*p == '\t') {
-			int n = TABSIZE - col % TABSIZE;
-			fprintf(stderr, "%.*s", n, TAB_AS_SPACES);
-			col += n;
+		if (ch == '\t') {
+			col += w = TABSIZE - (col & (TABSIZE - 1));
+			fprintf(stderr, "%.*s", w, SPACES);
 		} else {
-			fputc(*p, stderr);
-			col++;
+			fprintf(stderr, "%.*s", w, line.p - w);
+			w = uprop_get_wdth(ch);
+			col += w = MAX(w, 0);
 		}
 	}
 	if (hl.p + hl.len == end)
@@ -104,20 +106,17 @@ diagemit(const char *type, const char *file, const char8_t *base,
 	fputc('\n', stderr);
 	fprintf(stderr, " %*c │ ", w, ' ');
 
-	col = 0;
-	for (const char8_t *p = start; p < hl.p; p++) {
-		if (*p == '\t') {
-			int n = TABSIZE - col % TABSIZE;
-			fprintf(stderr, "%.*s", n, TAB_AS_SPACES);
-			col += n;
-		} else {
-			fputc(' ', stderr);
-			col++;
-		}
-	}
+	line.p = start;
+	line.len = hl.p - start;
+	size_t pre_hl_cols = ucswdth(line, TABSIZE);
+	line.len += hl.len;
+	size_t pre_and_hl_cols = ucswdth(line, TABSIZE);
+
+	for (size_t i = 0; i < pre_hl_cols; i++)
+		fputc(' ', stderr);
 
 	fprintf(stderr, "%s^", _type);
-	for (size_t i = 1, cols = ucsgcnt(hl); i < cols; i++)
+	for (size_t i = 1; i < pre_and_hl_cols - pre_hl_cols; i++)
 		fputc('~', stderr);
 	fprintf(stderr, "%s\n", _done);
 	funlockfile(stderr);
