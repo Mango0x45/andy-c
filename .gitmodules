@@ -1,3 +1,3 @@
 [submodule "vendor/mlib"]
 	path = vendor/mlib
-	url = git@github.com:Mango0x45/mlib.git
+	url = https://github.com/Mango0x45/mlib.git
