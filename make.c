@@ -127,9 +127,7 @@ main(int argc, char **argv)
 		CMDRC(c);
 
 		if ((err = glob("src/*.c", 0, globerr, &g)) != 0 && err != GLOB_NOMATCH)
-		{
 			die("glob");
-		}
 
 		int procs = nproc();
 		if (procs == -1) {
