@@ -1,8 +1,10 @@
 #include <setjmp.h>
+#include <stdlib.h>
 
 #include <alloc.h>
 #include <errors.h>
 #include <macros.h>
+#include <mbstring.h>
 
 #include "error.h"
 #include "lexer.h"
@@ -333,10 +335,19 @@ parse_word(struct parser p)
 	char8_t *wp = arena_new(p.a, char8_t, t.sv.len);
 	if (wp == nullptr)
 		err("arena_new:");
-	/* TODO: Support \u{…} escapes */
 	for (size_t i = 0; i < t.sv.len; i++) {
-		wp[sv.len++] = t.sv.p[i] == '\\' ? escape(t.sv.p[++i], true)
-		                                 : t.sv.p[i];
+		if (t.sv.p[i] != '\\')
+			wp[sv.len++] = t.sv.p[i];
+		else if (t.sv.p[++i] == 'u') {
+			char8_t buf[U8_LEN_MAX];
+			rune ch = strtol(&t.sv.p[i + 2], nullptr, 16);
+			int w = rtoucs(buf, sizeof(buf), ch);
+			for (int j = 0; j < w; j++)
+				wp[sv.len++] = buf[j];
+			while (t.sv.p[++i] != '}')
+				;
+		} else
+			wp[sv.len++] = escape(t.sv.p[i], true);
 	}
 	sv.p = wp;
 	return sv;
