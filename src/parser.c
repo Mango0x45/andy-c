@@ -333,6 +333,7 @@ parse_word(struct parser p)
 	char8_t *wp = arena_new(p.a, char8_t, t.sv.len);
 	if (wp == nullptr)
 		err("arena_new:");
+	/* TODO: Support \u{…} escapes */
 	for (size_t i = 0; i < t.sv.len; i++) {
 		wp[sv.len++] = t.sv.p[i] == '\\' ? escape(t.sv.p[++i], true)
 		                                 : t.sv.p[i];

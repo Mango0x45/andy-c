@@ -97,10 +97,13 @@ lexnext(struct lexer *l)
 
 					hl.len += w = ucsnext(&ch, &l->sv);
 
+					/* TODO: Support hexadecimal escapes (\xNN) */
 					if (w == 0) {
 						report(hl,
 						       "expected escape sequence but got end of file");
 					} else if (ch == 'u') {
+						/* TODO: Assert that the escape is within the legal
+						   range (0 <= N <= 0x10FFFF) */
 						hl.len += w = ucsnext(&ch, &l->sv);
 						if (w == 0 || ch != '{') {
 							report(hl, "Unicode escape sequence missing "
