@@ -99,14 +99,15 @@ lexnext(struct lexer *l)
 						report(hl,
 						       "expected escape sequence but got end of file");
 					} else if (ch == 'u') {
-						/* TODO: Assert that the escape is within the legal
-						   range (0 <= N <= 0x10FFFF) */
 						hl.len += w = ucsnext(&ch, &l->sv);
 						if (w == 0 || ch != '{') {
 							hl.len -= w;
 							report(hl, "Unicode escape sequence missing "
 							           "opening brace");
 						}
+
+						const char8_t *p = l->sv.p;
+
 						for (;;) {
 							hl.len += w = ucsnext(&ch, &l->sv);
 							if (w == 0 || ch == '}')
@@ -131,6 +132,33 @@ lexnext(struct lexer *l)
 							report(hl, "unterminated Unicode escape sequence");
 						if (l->sv.p[-2] == '{')
 							report(hl, "empty Unicode escape sequence");
+
+						/* At this point we know that P is a brace-terminated
+						   string */
+						rune ch;
+						for (const char8_t *q = p;;) {
+							q += ucstor(&ch, q);
+							if (ch != '0')
+								break;
+							report(hl, "leading zeros are disallowed in "
+							           "Unicode escape sequences");
+						}
+
+						/* All Unicode runes must be within the range 0–10FFFF,
+						   thanks to the fact that the largest rune is 1 less
+						   than 110000, it’s very easy to check if we’re in the
+						   range by checking only the length and first two
+						   digits */
+						size_t len = hl.len - sizeof("\\u{}") + 1;
+						if (len > 6
+						    || (len == 6
+						        && (p[0] != '1'
+						            || (p[0] == '1' && p[1] != '0'))))
+						{
+							report(
+								hl,
+								"Unicode codepoints must be between 0–10FFFF");
+						}
 					} else if ((e = escape(ch, true)) == 0) {
 						VSHFT(&l->sv, -w);
 						struct u8view g, cpy = l->sv;
