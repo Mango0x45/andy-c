@@ -1,4 +1,5 @@
 #include <setjmp.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 #include <alloc.h>
@@ -22,6 +23,7 @@ static struct cmd parse_cmd(struct parser);
 static struct value parse_value(struct parser);
 static struct list parse_list(struct parser);
 static struct u8view parse_word(struct parser);
+[[unsequenced]] static int hex(char);
 [[unsequenced]] static bool tokisval(enum lextokkind);
 
 struct program *
@@ -346,11 +348,24 @@ parse_word(struct parser p)
 				wp[sv.len++] = buf[j];
 			while (t.sv.p[++i] != '}')
 				;
+		} else if (t.sv.p[i] == 'x') {
+			uint8_t b = (hex(t.sv.p[i + 1]) << 4) | hex(t.sv.p[i + 2]);
+			i += 2;
+			wp[sv.len++] = b;
 		} else
 			wp[sv.len++] = escape(t.sv.p[i], true);
 	}
 	sv.p = wp;
 	return sv;
+}
+
+int
+hex(char ch)
+{
+	return ch >= '0' && ch <= '9' ? ch - '0'
+	     : ch >= 'a' && ch <= 'f' ? ch - 'a' + 10
+	     : ch >= 'A' && ch <= 'F' ? ch - 'A' + 10
+	                              : 0;
 }
 
 bool

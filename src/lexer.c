@@ -98,6 +98,19 @@ lexnext(struct lexer *l)
 					if (w == 0) {
 						report(hl,
 						       "expected escape sequence but got end of file");
+					} else if (ch == 'x') {
+						hl.len += w = ucsnext(&ch, &l->sv);
+						if (w == 0 || !uprop_is_ahex(ch)) {
+							hl.len -= w;
+							report(hl, "hexadecimal escape sequence not "
+							           "followed by two hex digits");
+						}
+						hl.len += w = ucsnext(&ch, &l->sv);
+						if (w == 0 || !uprop_is_ahex(ch)) {
+							hl.len -= w;
+							report(hl, "hexadecimal escape sequence not "
+							           "followed by two hex digits");
+						}
 					} else if (ch == 'u') {
 						hl.len += w = ucsnext(&ch, &l->sv);
 						if (w == 0 || ch != '{') {
