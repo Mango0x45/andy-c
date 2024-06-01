@@ -14,6 +14,16 @@
 #include "lexer.h"
 #include "syntax.h"
 
+#define ESEOF      "expected escape sequence but got end of file"
+#define ESHEXBAD   "hexadecimal escape sequence not followed by two hex digits"
+#define ESINVAL    "invalid escape sequence ‘%.*s’"
+#define ESUNICLOSE "unterminated Unicode escape sequence"
+#define ESUNIEMPTY "empty Unicode escape sequence"
+#define ESUNIHEX   "non-hexadecimal digit ‘%.*s’ in Unicode escape sequence"
+#define ESUNIOPEN  "Unicode escape sequence missing opening brace"
+#define ESUNIRANGE "Unicode codepoints must be between 0–10FFFF"
+#define ESUNIZERO  "leading zeros are disallowed in Unicode escape sequences"
+
 #define report(hl, ...)                                                        \
 	do {                                                                       \
 		tok.sv.len = l->sv.p - tok.sv.p;                                       \
@@ -96,27 +106,23 @@ lexnext(struct lexer *l)
 
 					/* TODO: Support hexadecimal escapes (\xNN) */
 					if (w == 0) {
-						report(hl,
-						       "expected escape sequence but got end of file");
+						report(hl, ESEOF);
 					} else if (ch == 'x') {
 						hl.len += w = ucsnext(&ch, &l->sv);
 						if (w == 0 || !uprop_is_ahex(ch)) {
 							hl.len -= w;
-							report(hl, "hexadecimal escape sequence not "
-							           "followed by two hex digits");
+							report(hl, ESHEXBAD);
 						}
 						hl.len += w = ucsnext(&ch, &l->sv);
 						if (w == 0 || !uprop_is_ahex(ch)) {
 							hl.len -= w;
-							report(hl, "hexadecimal escape sequence not "
-							           "followed by two hex digits");
+							report(hl, ESHEXBAD);
 						}
 					} else if (ch == 'u') {
 						hl.len += w = ucsnext(&ch, &l->sv);
 						if (w == 0 || ch != '{') {
 							hl.len -= w;
-							report(hl, "Unicode escape sequence missing "
-							           "opening brace");
+							report(hl, ESUNIOPEN);
 						}
 
 						const char8_t *p = l->sv.p;
@@ -127,24 +133,20 @@ lexnext(struct lexer *l)
 								break;
 							if (risvws(ch)) {
 								hl.len -= w;
-								report(hl,
-								       "unterminated Unicode escape sequence");
+								report(hl, ESUNICLOSE);
 							}
 							if (!uprop_is_ahex(ch)) {
 								VSHFT(&l->sv, -w);
 								struct u8view g, cpy = l->sv;
 								ucsgnext(&g, &cpy);
 								hl.len += g.len - w;
-								report(hl,
-								       "non-hexadecimal digit ‘%.*s’ in "
-								       "Unicode escape sequence",
-								       SV_PRI_ARGS(g));
+								report(hl, ESUNIHEX, SV_PRI_ARGS(g));
 							}
 						}
 						if (w == 0)
-							report(hl, "unterminated Unicode escape sequence");
+							report(hl, ESUNICLOSE);
 						if (l->sv.p[-2] == '{')
-							report(hl, "empty Unicode escape sequence");
+							report(hl, ESUNIEMPTY);
 
 						/* At this point we know that P is a brace-terminated
 						   string */
@@ -153,8 +155,7 @@ lexnext(struct lexer *l)
 							q += ucstor(&ch, q);
 							if (ch != '0')
 								break;
-							report(hl, "leading zeros are disallowed in "
-							           "Unicode escape sequences");
+							report(hl, ESUNIZERO);
 						}
 
 						/* All Unicode runes must be within the range 0–10FFFF,
@@ -168,17 +169,14 @@ lexnext(struct lexer *l)
 						        && (p[0] != '1'
 						            || (p[0] == '1' && p[1] != '0'))))
 						{
-							report(
-								hl,
-								"Unicode codepoints must be between 0–10FFFF");
+							report(hl, ESUNIRANGE);
 						}
 					} else if ((e = escape(ch, true)) == 0) {
 						VSHFT(&l->sv, -w);
 						struct u8view g, cpy = l->sv;
 						ucsgnext(&g, &cpy);
 						hl.len += g.len - w;
-						report(hl, "invalid escape sequence ‘%.*s’",
-						       SV_PRI_ARGS(hl));
+						report(hl, ESINVAL, SV_PRI_ARGS(hl));
 					}
 
 					/* If we got here, then we know that the W > 0 in the
