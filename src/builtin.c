@@ -80,13 +80,13 @@ builtin_get(char **argv, size_t n)
 	sym.p = ucsnorm(&sym.len, sym, alloc_heap, nullptr, NF_NFC);
 	struct vartab *vt = symtabget(symboltable, sym);
 
-	if (vt == nullptr)
-		return EXIT_SUCCESS;
-	for (size_t i = 2; i < n; i++) {
-		struct u8view k = {argv[i], strlen(argv[i])};
-		struct u8view *v = vartabget(*vt, k);
-		if (v != nullptr)
-			printf("%.*s\n", SV_PRI_ARGS(*v));
+	if (vt != nullptr) {
+		for (size_t i = 2; i < n; i++) {
+			struct u8view k = {argv[i], strlen(argv[i])};
+			struct u8view *v = vartabget(*vt, k);
+			if (v != nullptr)
+				printf("%.*s\n", SV_PRI_ARGS(*v));
+		}
 	}
 
 	free((void *)sym.p);
