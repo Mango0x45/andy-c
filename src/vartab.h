@@ -17,8 +17,8 @@ struct vartab {
 };
 
 struct vartab mkvartab(void);
-struct u8view vartabget(struct vartab, struct u8view);
-void vartabadd(struct vartab *, struct u8view, struct u8view);
+struct u8view *vartabget(struct vartab, struct u8view);
+struct u8view *vartabadd(struct vartab *, struct u8view, struct u8view);
 void vartabdel(struct vartab *, struct u8view);
 void vartabfree(struct vartab);
 

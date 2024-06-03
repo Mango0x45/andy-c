@@ -33,8 +33,7 @@ vartabvfree(struct u8view sv)
 	free((void *)sv.p);
 }
 
-#define MAPNAME  vartab
-#define KEYTYPE  struct u8view
-#define VALTYPE  struct u8view
-#define NOTFOUND ((struct u8view){})
+#define MAPNAME vartab
+#define KEYTYPE struct u8view
+#define VALTYPE struct u8view
 #include "map.h"

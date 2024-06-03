@@ -81,9 +81,9 @@ builtin_get(char **argv, size_t n)
 		return EXIT_SUCCESS;
 	for (size_t i = 2; i < n; i++) {
 		struct u8view k = {argv[i], strlen(argv[i])};
-		struct u8view v = vartabget(*vt, k);
-		if (v.p != nullptr)
-			printf("%.*s\n", SV_PRI_ARGS(v));
+		struct u8view *v = vartabget(*vt, k);
+		if (v != nullptr)
+			printf("%.*s\n", SV_PRI_ARGS(*v));
 	}
 
 	return EXIT_SUCCESS;
@@ -125,9 +125,8 @@ usage:
 	struct vartab *vt = symtabget(symboltable, sym);
 
 	if (vt == nullptr) {
-		*(vt = bufalloc(nullptr, 1, sizeof(*vt))) = mkvartab();
 		sym.p = memcpy(bufalloc(nullptr, 1, sym.len), argv[0], sym.len);
-		symtabadd(&symboltable, sym, vt);
+		vt = symtabadd(&symboltable, sym, mkvartab());
 	}
 
 	if (kflag.p != nullptr && argc == 1) {

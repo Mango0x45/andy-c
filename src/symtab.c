@@ -28,14 +28,12 @@ symtabkfree(struct u8view sv)
 }
 
 static void
-symtabvfree(struct vartab *vt)
+symtabvfree(struct vartab vt)
 {
-	vartabfree(*vt);
-	free(vt);
+	vartabfree(vt);
 }
 
-#define MAPNAME  symtab
-#define KEYTYPE  struct u8view
-#define VALTYPE  struct vartab *
-#define NOTFOUND nullptr
+#define MAPNAME symtab
+#define KEYTYPE struct u8view
+#define VALTYPE struct vartab
 #include "map.h"

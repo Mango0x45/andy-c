@@ -7,7 +7,7 @@
 
 struct symtabpair {
 	struct u8view k;
-	struct vartab *v;
+	struct vartab v;
 };
 
 struct symtab {
@@ -19,7 +19,7 @@ struct symtab {
 
 struct symtab mksymtab(void);
 struct vartab *symtabget(struct symtab, struct u8view);
-void symtabadd(struct symtab *, struct u8view, struct vartab *);
+struct vartab *symtabadd(struct symtab *, struct u8view, struct vartab);
 void symtabdel(struct symtab *, struct u8view);
 void symtabfree(struct symtab);
 

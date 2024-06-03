@@ -1,5 +1,4 @@
-#if !defined(MAPNAME) || !defined(KEYTYPE) || !defined(VALTYPE)                \
-	|| !defined(NOTFOUND)
+#if !defined(MAPNAME) || !defined(KEYTYPE) || !defined(VALTYPE)
 #	error "Missing required macro definitions"
 #endif
 
@@ -66,7 +65,7 @@ FUNC(free)(struct MAPNAME m)
 	free(m.bkts);
 }
 
-void
+V *
 FUNC(add)(struct MAPNAME *m, K k, V v)
 {
 	if (m->len + 1 >= m->cap * LOADF) {
@@ -83,24 +82,25 @@ FUNC(add)(struct MAPNAME *m, K k, V v)
 		if (FUNC(eq)(k, kv->k)) {
 			FUNC(vfree)(kv->v);
 			kv->v = v;
-			return;
+			return &kv->v;
 		}
 	}
 
 	struct PAIR _kv = {k, v};
 	DAPUSH(m->bkts + i, _kv);
 	m->len++;
+	return &m->bkts[i].buf[m->bkts[i].len - 1].v;
 }
 
-V
+V *
 FUNC(get)(struct MAPNAME m, K k)
 {
 	size_t i = FUNC(hash)(k) % m.cap;
 	da_foreach (m.bkts[i], kv) {
 		if (FUNC(eq)(k, kv->k))
-			return kv->v;
+			return &kv->v;
 	}
-	return NOTFOUND;
+	return nullptr;
 }
 
 void
@@ -144,4 +144,3 @@ FUNC(resz)(struct MAPNAME *m, size_t cap)
 #undef MAPNAME
 #undef KEYTYPE
 #undef VALTYPE
-#undef NOTFOUND
