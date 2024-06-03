@@ -14,16 +14,15 @@
 #include <errors.h>
 #include <macros.h>
 
-#define K KEYTYPE
-#define V VALTYPE
-
-#if !MAPIMPL_MACRO_GUARD
+#if !MAP_MACRO_GUARD
+#	define K       KEYTYPE
+#	define V       VALTYPE
 #	define BKT     CONCAT(MAPNAME, bkt)
 #	define PAIR    CONCAT(MAPNAME, pair)
 #	define FUNC(f) CONCAT(MAPNAME, f)
 #	define LOADF   0.75
 
-#	define MAPIMPL_MACRO_GUARD 1
+#	define MAP_MACRO_GUARD 1
 #endif
 
 struct PAIR {
@@ -142,8 +141,6 @@ FUNC(resz)(struct MAPNAME *m, size_t cap)
 	*m = _m;
 }
 
-#undef K
-#undef V
 #undef MAPNAME
 #undef KEYTYPE
 #undef VALTYPE
