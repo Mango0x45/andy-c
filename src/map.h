@@ -135,9 +135,10 @@ FUNC(resz)(struct MAPNAME *m, size_t cap)
 	for (size_t i = 0; i < _m.cap; i++)
 		_m.bkts[i].alloc = alloc_heap;
 	for (size_t i = 0; i < m->cap; i++) {
-		da_foreach (m->bkts[i], kv)
+		struct BKT b = m->bkts[i];
+		da_foreach (b, kv)
 			FUNC(add)(&_m, kv->k, kv->v);
-		free(m->bkts[i].buf);
+		free(b.buf);
 	}
 	free(m->bkts);
 	*m = _m;
