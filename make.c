@@ -126,9 +126,6 @@ main(int argc, char **argv)
 			cmdadd(&c, "-r");
 		CMDRC(c);
 
-		if ((err = glob("src/*.c", 0, globerr, &g)) != 0 && err != GLOB_NOMATCH)
-			die("glob");
-
 		int procs = nproc();
 		if (procs == -1) {
 			if (errno)
@@ -147,6 +144,9 @@ main(int argc, char **argv)
 				fprintf(stderr, "GPERF\t%s\n", "src/builtin.gen.c");
 			CMDRC(c);
 		}
+
+		if ((err = glob("src/*.c", 0, globerr, &g)) != 0 && err != GLOB_NOMATCH)
+			die("glob");
 
 		tpinit(&tp, procs);
 		for (size_t i = 0; i < g.gl_pathc; i++)
