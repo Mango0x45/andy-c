@@ -110,11 +110,14 @@ FUNC(del)(struct MAPNAME *m, K k)
 	struct BKT *b = m->bkts + i;
 
 	for (size_t j = 0; j < b->len; j++) {
-		if (!FUNC(eq)(k, b->buf[j].k))
+		struct PAIR p = b->buf[j];
+		if (!FUNC(eq)(k, p.k))
 			continue;
-		FUNC(kfree)(b->buf[j].k);
-		FUNC(vfree)(b->buf[j].v);
+
+		FUNC(kfree)(p.k);
+		FUNC(vfree)(p.v);
 		DAREMOVE(b, j);
+
 		if (--m->len < (m->cap / 2) * LOADF)
 			FUNC(resz)(m, m->cap / 2);
 		return;
@@ -134,9 +137,8 @@ FUNC(resz)(struct MAPNAME *m, size_t cap)
 	for (size_t i = 0; i < m->cap; i++) {
 		da_foreach (m->bkts[i], kv)
 			FUNC(add)(&_m, kv->k, kv->v);
+		free(m->bkts[i].buf);
 	}
-	for (size_t i = 0; i < m->cap; i++)
-		free(m->bkts->buf);
 	free(m->bkts);
 	*m = _m;
 }
