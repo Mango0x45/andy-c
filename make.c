@@ -95,7 +95,7 @@ main(int argc, char **argv)
 		cmd_t c = {};
 		if (streq("clean", *argv)) {
 			cmdadd(&c, "find", ".", "(", "-name", TARGET, "-or", "-name",
-			       "*.[ao]", ")", "-delete");
+			       "*.gen.c", "-or", "-name", "*.[ao]", ")", "-delete");
 			cmdput(c);
 			CMDRC(c);
 		} else {
