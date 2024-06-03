@@ -139,10 +139,11 @@ usage:
 		v.p = memcpy(bufalloc(nullptr, 1, v.len), argv[1], v.len);
 		vartabadd(vt, k, v);
 	} else if (argc == 1) {
-		/* TODO: Only delete numeric keys */
-		/* TODO: Memory leak here? */
 		symtabdel(&symboltable, sym);
 	} else {
+		vartabfree(*vt);
+		*vt = mkvartab();
+
 		for (size_t i = 1; i < argc; i++) {
 			constexpr size_t SIZE_STR_MAX = 21;
 
