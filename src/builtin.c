@@ -71,17 +71,40 @@ builtin_false(char **, size_t)
 }
 
 int
-builtin_get(char **argv, size_t n)
+builtin_get(char **argv, size_t argc)
 {
-	if (n < 2)
-		return xwarn("Usage: get symbol [key ...]");
+	if (argc < 2) {
+usage:
+		return xwarn("Usage: get [-N] symbol [key ...]");
+	}
 
-	struct u8view sym = {argv[1], strlen(argv[1])};
-	sym.p = ucsnorm(&sym.len, sym, alloc_heap, nullptr, NF_NFC);
+	bool Nflag = false;
+	struct optparser cli = mkoptparser(argv);
+	static const struct cli_option opts[] = {
+		{'N', U8C("no-normalize"), CLI_NONE},
+	};
+
+	for (rune ch; (ch = optparse(&cli, opts, lengthof(opts))) != 0;) {
+		switch (ch) {
+		case 'N':
+			Nflag = true;
+			break;
+		default:
+			xwarn("get: %s", cli.errmsg);
+			goto usage;
+		}
+	}
+
+	argc -= cli.optind;
+	argv += cli.optind;
+
+	struct u8view sym = {argv[0], strlen(argv[0])};
+	if (!Nflag)
+		sym.p = ucsnorm(&sym.len, sym, alloc_heap, nullptr, NF_NFC);
 	struct vartab *vt = symtabget(symboltable, sym);
 
 	if (vt != nullptr) {
-		for (size_t i = 2; i < n; i++) {
+		for (size_t i = 1; i < argc; i++) {
 			struct u8view k = {argv[i], strlen(argv[i])};
 			struct u8view *v = vartabget(*vt, k);
 			if (v != nullptr)
@@ -89,7 +112,8 @@ builtin_get(char **argv, size_t n)
 		}
 	}
 
-	free((void *)sym.p);
+	if (!Nflag)
+		free((void *)sym.p);
 	return EXIT_SUCCESS;
 }
 
@@ -98,20 +122,25 @@ builtin_set(char **argv, size_t argc)
 {
 	if (argc < 2) {
 usage:
-		return xwarn("Usage: set symbol [value ...]\n"
-		             "       set -k key symbol [value]");
+		return xwarn("Usage: set [-N] symbol [value ...]\n"
+		             "       set [-N] -k key symbol [value]");
 	}
 
+	bool Nflag = false;
 	struct u8view kflag = {};
 	struct optparser cli = mkoptparser(argv);
 	static const struct cli_option opts[] = {
-		{'k', U8C("key"), CLI_REQ},
+		{'k', U8C("key"),          CLI_REQ },
+		{'N', U8C("no-normalize"), CLI_NONE},
 	};
 
 	for (rune ch; (ch = optparse(&cli, opts, lengthof(opts))) != 0;) {
 		switch (ch) {
 		case 'k':
 			kflag = cli.optarg;
+			break;
+		case 'N':
+			Nflag = true;
 			break;
 		default:
 			xwarn("set: %s", cli.errmsg);
@@ -125,13 +154,19 @@ usage:
 	if (kflag.p != nullptr && argc > 2)
 		goto usage;
 
-	bool do_free = true;
+	bool do_free = !Nflag;
 	struct u8view sym = {argv[0], strlen(argv[0])};
-	sym.p = ucsnorm(&sym.len, sym, alloc_heap, nullptr, NF_NFC);
+	if (!Nflag)
+		sym.p = ucsnorm(&sym.len, sym, alloc_heap, nullptr, NF_NFC);
 
 	struct vartab *vt = symtabget(symboltable, sym);
 
 	if (vt == nullptr) {
+		if (Nflag) {
+			sym.p = memcpy(bufalloc(nullptr, sym.len, sizeof(char8_t)), sym.p,
+			               sym.len);
+		}
+
 		/* Don’t free SYM if we’re adding it to the symbol table, because that
 		   would obviously break the symbol table */
 		vt = symtabadd(&symboltable, sym, mkvartab());
