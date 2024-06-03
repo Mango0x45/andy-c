@@ -6,11 +6,9 @@
 #include <unistd.h>
 
 #include <alloc.h>
-#include <bitset.h>
 #include <cli.h>
 #include <macros.h>
 #include <mbstring.h>
-#include <rune.h>
 #include <unicode/string.h>
 
 #include "builtin.h"
@@ -75,7 +73,7 @@ builtin_false(char **, size_t)
 int
 builtin_get(char **argv, size_t argc)
 {
-	bitset(flags, ASCII_MAX) = {};
+	bool kflag, Nflag, vflag;
 	struct optparser cli = mkoptparser(argv);
 	static const struct cli_option opts[] = {
 		{'k', U8C("keys"),         CLI_NONE},
@@ -83,24 +81,28 @@ builtin_get(char **argv, size_t argc)
 		{'v', U8C("values"),       CLI_NONE},
 	};
 
+	kflag = Nflag = vflag = false;
 	for (rune ch; (ch = optparse(&cli, opts, lengthof(opts))) != 0;) {
 		switch (ch) {
-		case -1:
+		case 'k':
+			kflag = true;
+			break;
+		case 'N':
+			Nflag = true;
+			break;
+		case 'v':
+			vflag = true;
+			break;
+		default:
 			xwarn("get: %s", cli.errmsg);
 usage:
 			return xwarn("Usage: get [-N] symbol [key ...]\n"
 			             "       get [-N] [-k | -v] symbol");
-		default:
-			SETBIT(flags, ch);
 		}
 	}
 
 	argc -= cli.optind;
 	argv += cli.optind;
-
-	bool Nflag = TESTBIT(flags, 'N');
-	bool kflag = TESTBIT(flags, 'k');
-	bool vflag = TESTBIT(flags, 'v');
 
 	if (kflag && vflag)
 		goto usage;
