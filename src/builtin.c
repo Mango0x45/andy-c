@@ -8,6 +8,8 @@
 #include <alloc.h>
 #include <cli.h>
 #include <macros.h>
+#include <mbstring.h>
+#include <unicode/string.h>
 
 #include "builtin.h"
 #include "exec.h"
@@ -75,6 +77,7 @@ builtin_get(char **argv, size_t n)
 		return xwarn("Usage: get symbol [key ...]");
 
 	struct u8view sym = {argv[1], strlen(argv[1])};
+	sym.p = ucsnorm(&sym.len, sym, alloc_heap, nullptr, NF_NFC);
 	struct vartab *vt = symtabget(symboltable, sym);
 
 	if (vt == nullptr)
@@ -86,6 +89,7 @@ builtin_get(char **argv, size_t n)
 			printf("%.*s\n", SV_PRI_ARGS(*v));
 	}
 
+	free((void *)sym.p);
 	return EXIT_SUCCESS;
 }
 
@@ -121,12 +125,17 @@ usage:
 	if (kflag.p != nullptr && argc > 2)
 		goto usage;
 
+	bool do_free = true;
 	struct u8view sym = {argv[0], strlen(argv[0])};
+	sym.p = ucsnorm(&sym.len, sym, alloc_heap, nullptr, NF_NFC);
+
 	struct vartab *vt = symtabget(symboltable, sym);
 
 	if (vt == nullptr) {
-		sym.p = memcpy(bufalloc(nullptr, 1, sym.len), argv[0], sym.len);
+		/* Don’t free SYM if we’re adding it to the symbol table, because that
+		   would obviously break the symbol table */
 		vt = symtabadd(&symboltable, sym, mkvartab());
+		do_free = false;
 	}
 
 	if (kflag.p != nullptr && argc == 1) {
@@ -160,6 +169,8 @@ usage:
 		}
 	}
 
+	if (do_free)
+		free((void *)sym.p);
 	return EXIT_SUCCESS;
 }
 
