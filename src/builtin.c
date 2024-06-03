@@ -6,9 +6,11 @@
 #include <unistd.h>
 
 #include <alloc.h>
+#include <bitset.h>
 #include <cli.h>
 #include <macros.h>
 #include <mbstring.h>
+#include <rune.h>
 #include <unicode/string.h>
 
 #include "builtin.h"
@@ -73,37 +75,59 @@ builtin_false(char **, size_t)
 int
 builtin_get(char **argv, size_t argc)
 {
-	if (argc < 2) {
-usage:
-		return xwarn("Usage: get [-N] symbol [key ...]");
-	}
-
-	bool Nflag = false;
+	bitset(flags, ASCII_MAX) = {};
 	struct optparser cli = mkoptparser(argv);
 	static const struct cli_option opts[] = {
+		{'k', U8C("keys"),         CLI_NONE},
 		{'N', U8C("no-normalize"), CLI_NONE},
+		{'v', U8C("values"),       CLI_NONE},
 	};
 
 	for (rune ch; (ch = optparse(&cli, opts, lengthof(opts))) != 0;) {
 		switch (ch) {
-		case 'N':
-			Nflag = true;
-			break;
-		default:
+		case -1:
 			xwarn("get: %s", cli.errmsg);
-			goto usage;
+usage:
+			return xwarn("Usage: get [-N] symbol [key ...]\n"
+			             "       get [-N] [-k | -v] symbol");
+		default:
+			SETBIT(flags, ch);
 		}
 	}
 
 	argc -= cli.optind;
 	argv += cli.optind;
 
+	bool Nflag = TESTBIT(flags, 'N');
+	bool kflag = TESTBIT(flags, 'k');
+	bool vflag = TESTBIT(flags, 'v');
+
+	if (kflag && vflag)
+		goto usage;
+	if ((kflag || vflag) && argc != 1)
+		goto usage;
+	if (!kflag && !vflag && argc == 0)
+		goto usage;
+
 	struct u8view sym = {argv[0], strlen(argv[0])};
 	if (!Nflag)
 		sym.p = ucsnorm(&sym.len, sym, alloc_heap, nullptr, NF_NFC);
 	struct vartab *vt = symtabget(symboltable, sym);
 
-	if (vt != nullptr) {
+	if (vt == nullptr)
+		goto out;
+
+	if (kflag) {
+		for (size_t i = 0; i < vt->cap; i++) {
+			da_foreach (vt->bkts[i], kv)
+				printf("%.*s\n", SV_PRI_ARGS(kv->k));
+		}
+	} else if (vflag) {
+		for (size_t i = 0; i < vt->cap; i++) {
+			da_foreach (vt->bkts[i], kv)
+				printf("%.*s\n", SV_PRI_ARGS(kv->v));
+		}
+	} else {
 		for (size_t i = 1; i < argc; i++) {
 			struct u8view k = {argv[i], strlen(argv[i])};
 			struct u8view *v = vartabget(*vt, k);
@@ -112,6 +136,7 @@ usage:
 		}
 	}
 
+out:
 	if (!Nflag)
 		free((void *)sym.p);
 	return EXIT_SUCCESS;
