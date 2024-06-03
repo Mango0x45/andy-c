@@ -61,8 +61,8 @@ hash (register const char *str, register size_t len)
      10,10,10,10,10,10,10,10,10,10,
      10,10,10,10,10,10,10,10,10,10,
      10,10,10,10,10,10,10,10,10, 0,
-     10, 5, 0,10,10,10,10,10,10,10,
-     10,10,10,10,10,10, 0,10,10,10,
+     10, 5, 0, 5,10,10,10,10,10,10,
+     10,10,10,10,10, 0, 0,10,10,10,
      10,10,10,10,10,10,10,10,10,10,
      10,10,10,10,10,10,10,10,10,10,
      10,10,10,10,10,10,10,10,10,10,
@@ -86,7 +86,7 @@ in_word_set (register const char *str, register size_t len)
 {
   enum
     {
-      TOTAL_KEYWORDS = 4,
+      TOTAL_KEYWORDS = 6,
       MIN_WORD_LENGTH = 2,
       MAX_WORD_LENGTH = 5,
       MIN_HASH_VALUE = 2,
@@ -98,12 +98,15 @@ in_word_set (register const char *str, register size_t len)
       {""}, {""},
 #line 15 "src/builtin.gperf"
       {"cd",    builtin_cd},
-      {""},
-#line 18 "src/builtin.gperf"
+#line 19 "src/builtin.gperf"
+      {"set",   builtin_set},
+#line 20 "src/builtin.gperf"
       {"true",  builtin_true},
 #line 17 "src/builtin.gperf"
       {"false", builtin_false},
-      {""}, {""}, {""},
+      {""}, {""},
+#line 18 "src/builtin.gperf"
+      {"get",   builtin_get},
 #line 16 "src/builtin.gperf"
       {"echo",  builtin_echo}
     };
@@ -122,7 +125,7 @@ in_word_set (register const char *str, register size_t len)
     }
   return 0;
 }
-#line 19 "src/builtin.gperf"
+#line 21 "src/builtin.gperf"
 
 builtin_fn
 lookup_builtin(const char *s)

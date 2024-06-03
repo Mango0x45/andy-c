@@ -13,6 +13,7 @@
 #include "builtin.h"
 #include "exec.h"
 #include "parser.h"
+#include "symtab.h"
 
 struct strs {
 	dafields(char *)
@@ -31,6 +32,8 @@ static int exec_cmpnd(struct cmpnd, struct ctx);
 static int exec_cmd(struct cmd, struct ctx);
 
 static struct strarr valtostrs(struct value, alloc_fn, void *);
+
+struct symtab symboltable;
 
 int
 exec_prog(struct program p, struct ctx ctx)
@@ -182,7 +185,7 @@ exec_cmd(struct cmd c, struct ctx ctx)
 
 	builtin_fn bltn = lookup_builtin(argv.buf[0]);
 	if (bltn != nullptr) {
-		ret = bltn(argv.buf, argv.len, ctx);
+		ret = bltn(argv.buf, argv.len);
 		goto out;
 	}
 

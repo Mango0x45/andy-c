@@ -35,6 +35,7 @@ main(int, char **argv)
 	errinit();
 
 	setlocale(LC_ALL, "");
+	symboltable = mksymtab();
 
 	if ((interactive = isatty(STDIN_FILENO)))
 		rloop();
