@@ -245,13 +245,16 @@ valtostrs(struct value v, alloc_fn alloc, void *ctx)
 		sv.p = ucsnorm(&sv.len, sv, alloc, ctx, NF_NFC);
 
 		char *s = getenv(sv.p);
-		if (s != nullptr) {
+		if (s != nullptr && *s != 0) {
 			size_t len = strlen(s);
 			sa.n = 1;
 			sa.p = alloc(ctx, nullptr, 0, 1, sizeof(char *), alignof(char *));
 			sa.p[0] = alloc(ctx, nullptr, 0, len + 1, sizeof(char),
 			                alignof(char));
 			memcpyz(sa.p[0], s, len);
+		} else {
+			sa.n = 0;
+			sa.p = nullptr;
 		}
 		break;
 	}
