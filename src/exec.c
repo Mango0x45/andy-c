@@ -37,7 +37,7 @@ static int exec_cmd(struct cmd, struct ctx);
 static struct strarr valtostrs(struct value, alloc_fn, void *);
 static void *memcpyz(void *restrict, const void *restrict, size_t);
 
-constexpr size_t SIZE_STR_MAX = 21;
+constexpr size_t U64_STR_MAX = 21;
 struct symtab symboltable;
 
 void
@@ -48,12 +48,12 @@ shellinit(void)
 
 	vt = symtabadd(&symboltable, U8("shell"), mkvartab());
 
-	k.p = bufalloc(nullptr, SIZE_STR_MAX, sizeof(char));
-	k.len = snprintf((char *)k.p, SIZE_STR_MAX, "%zu", (size_t)getpid());
+	k.p = bufalloc(nullptr, U64_STR_MAX, sizeof(char));
+	k.len = snprintf((char *)k.p, U64_STR_MAX, "%ld", (long)getpid());
 	vartabadd(vt, U8("pid"), k);
 
-	k.p = bufalloc(nullptr, SIZE_STR_MAX, sizeof(char));
-	k.len = snprintf((char *)k.p, SIZE_STR_MAX, "%zu", (size_t)getppid());
+	k.p = bufalloc(nullptr, U64_STR_MAX, sizeof(char));
+	k.len = snprintf((char *)k.p, U64_STR_MAX, "%ld", (long)getppid());
 	vartabadd(vt, U8("ppid"), k);
 
 	if (setenv("SHELL", "Andy", 1) == -1)
@@ -344,7 +344,7 @@ var_out:
 			break;
 		}
 
-		sa.p[0] = alloc(ctx, nullptr, 0, SIZE_STR_MAX, sizeof(char),
+		sa.p[0] = alloc(ctx, nullptr, 0, U64_STR_MAX, sizeof(char),
 		                alignof(char));
 
 		size_t cnt = v.v.len == 0 ? vt->len : 0;
@@ -357,7 +357,7 @@ var_out:
 			}
 		}
 
-		snprintf(sa.p[0], SIZE_STR_MAX, "%zu", cnt);
+		snprintf(sa.p[0], U64_STR_MAX, "%zu", cnt);
 		break;
 	}
 	case VK_SEL:
