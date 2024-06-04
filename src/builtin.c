@@ -11,6 +11,7 @@
 #include <mbstring.h>
 #include <unicode/string.h>
 
+#include "bigint.h"
 #include "builtin.h"
 #include "exec.h"
 #include "symtab.h"
@@ -137,14 +138,24 @@ usage:
 		goto out;
 
 	if (kflag) {
+		da_foreach (vt->numeric, k)
+			printf("%.*s\n", SV_PRI_ARGS(*k));
 		for (size_t i = 0; i < vt->cap; i++) {
-			da_foreach (vt->bkts[i], kv)
-				printf("%.*s\n", SV_PRI_ARGS(kv->k));
+			da_foreach (vt->bkts[i], kv) {
+				if (!isbigint(kv->k))
+					printf("%.*s\n", SV_PRI_ARGS(kv->k));
+			}
 		}
 	} else if (vflag) {
+		da_foreach (vt->numeric, k) {
+			struct u8view *v = vartabget(*vt, *k);
+			printf("%.*s\n", SV_PRI_ARGS(*v));
+		}
 		for (size_t i = 0; i < vt->cap; i++) {
-			da_foreach (vt->bkts[i], kv)
-				printf("%.*s\n", SV_PRI_ARGS(kv->v));
+			da_foreach (vt->bkts[i], kv) {
+				if (!isbigint(kv->k))
+					printf("%.*s\n", SV_PRI_ARGS(kv->v));
+			}
 		}
 	} else {
 		for (size_t i = 1; i < argc; i++) {

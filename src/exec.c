@@ -12,6 +12,7 @@
 #include <macros.h>
 #include <unicode/string.h>
 
+#include "bigint.h"
 #include "builtin.h"
 #include "exec.h"
 #include "parser.h"
@@ -316,12 +317,21 @@ valtostrs(struct value v, alloc_fn alloc, void *ctx)
 			sa.p = alloc(ctx, nullptr, 0, sa.n, sizeof(char *),
 			             alignof(char *));
 
-			for (size_t i = 0, j = 0; i < vt->cap; i++) {
-				da_foreach (vt->bkts[i], kv) {
-					sa.p[j] = alloc(ctx, nullptr, 0, kv->v.len + 1,
+			size_t i = 0;
+			da_foreach (vt->numeric, k) {
+				struct u8view *v = vartabget(*vt, *k);
+				sa.p[i] = alloc(ctx, nullptr, 0, v->len + 1, sizeof(char),
+				                alignof(char));
+				memcpyz(sa.p[i++], v->p, v->len);
+			}
+
+			for (size_t j = 0; j < vt->cap; j++) {
+				da_foreach (vt->bkts[j], kv) {
+					if (isbigint(kv->k))
+						continue;
+					sa.p[i] = alloc(ctx, nullptr, 0, kv->v.len + 1,
 					                sizeof(char), alignof(char));
-					memcpyz(sa.p[j], kv->v.p, kv->v.len);
-					j++;
+					memcpyz(sa.p[i++], kv->v.p, kv->v.len);
 				}
 			}
 		}

@@ -5,6 +5,7 @@
 #include <errno.h>
 #include <stdckdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -12,6 +13,11 @@
 #include <dynarr.h>
 #include <errors.h>
 #include <macros.h>
+#include <mbstring.h>
+
+#ifdef VARTAB
+#	include "bigint.h"
+#endif
 
 #define K       KEYTYPE
 #define V       VALTYPE
@@ -31,6 +37,9 @@ struct MAPNAME {
 	struct BKT {
 		dafields(struct PAIR);
 	} *bkts;
+#ifdef VARTAB
+	dynarr(struct u8view) numeric;
+#endif
 	size_t len, cap;
 };
 
@@ -51,6 +60,9 @@ CONCAT(mk, MAPNAME)(void)
 	struct MAPNAME m = {
 		.cap = CAP,
 		.bkts = bufalloc(nullptr, CAP, sizeof(struct BKT)),
+#	ifdef VARTAB
+		.numeric.alloc = alloc_heap,
+#	endif
 	};
 	memset(m.bkts, 0, CAP * sizeof(struct BKT));
 	for (size_t i = 0; i < CAP; i++)
@@ -69,6 +81,9 @@ FUNC(free)(struct MAPNAME m)
 		free(m.bkts[i].buf);
 	}
 	free(m.bkts);
+#	ifdef VARTAB
+	free(m.numeric.buf);
+#	endif
 }
 
 V *
@@ -86,6 +101,7 @@ FUNC(add)(struct MAPNAME *m, K k, V v)
 	size_t i = FUNC(hash)(k) % m->cap;
 	da_foreach (m->bkts[i], kv) {
 		if (FUNC(eq)(k, kv->k)) {
+			FUNC(kfree)(k);
 			FUNC(vfree)(kv->v);
 			kv->v = v;
 			return &kv->v;
@@ -94,6 +110,13 @@ FUNC(add)(struct MAPNAME *m, K k, V v)
 
 	struct PAIR _kv = {k, v};
 	DAPUSH(m->bkts + i, _kv);
+#	ifdef VARTAB
+	if (isbigint(k)) {
+		DAPUSH(&m->numeric, k);
+		qsort(m->numeric.buf, m->numeric.len, sizeof(*m->numeric.buf),
+		      bigintcmp);
+	}
+#	endif
 	m->len++;
 	return &m->bkts[i].buf[m->bkts[i].len - 1].v;
 }
@@ -120,11 +143,23 @@ FUNC(del)(struct MAPNAME *m, K k)
 		if (!FUNC(eq)(k, p.k))
 			continue;
 
+#	ifdef VARTAB
+		if (isbigint(k)) {
+			/* TODO: Perform binary search */
+			for (size_t i = 0; i < m->numeric.len; i++) {
+				if (ucseq(m->numeric.buf[i], k)) {
+					DAREMOVE(&m->numeric, i);
+					break;
+				}
+			}
+		}
+#	endif
+
 		FUNC(kfree)(p.k);
 		FUNC(vfree)(p.v);
 		DAREMOVE(b, j);
 
-		if (--m->len < (m->cap / 2) * LOADF)
+		if (--m->len < (m->cap / 2) * LOADF && m->cap > 32)
 			FUNC(resz)(m, m->cap / 2);
 		return;
 	}
@@ -136,6 +171,9 @@ FUNC(resz)(struct MAPNAME *m, size_t cap)
 	struct MAPNAME _m = {
 		.cap = cap,
 		.bkts = bufalloc(nullptr, cap, sizeof(struct BKT)),
+#	ifdef VARTAB
+		.numeric.alloc = alloc_heap,
+#	endif
 	};
 	memset(_m.bkts, 0, cap * sizeof(struct BKT));
 	for (size_t i = 0; i < _m.cap; i++)
@@ -147,6 +185,9 @@ FUNC(resz)(struct MAPNAME *m, size_t cap)
 		free(b.buf);
 	}
 	free(m->bkts);
+#	ifdef VARTAB
+	free(m->numeric.buf);
+#	endif
 	*m = _m;
 }
 
@@ -161,3 +202,7 @@ FUNC(resz)(struct MAPNAME *m, size_t cap)
 #undef MAPNAME
 #undef KEYTYPE
 #undef VALTYPE
+
+#ifdef VARTAB
+#	undef VARTAB
+#endif
