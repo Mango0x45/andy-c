@@ -104,7 +104,6 @@ lexnext(struct lexer *l)
 
 					hl.len += w = ucsnext(&ch, &l->sv);
 
-					/* TODO: Support hexadecimal escapes (\xNN) */
 					if (w == 0) {
 						report(hl, ESEOF);
 					} else if (ch == 'x') {
