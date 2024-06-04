@@ -93,6 +93,6 @@ struct parser {
 	jmp_buf *err;
 };
 
-struct program *parse_program(struct parser);
+struct program *prsprog(struct parser);
 
 #endif /* !ANDY_PARSER_H */

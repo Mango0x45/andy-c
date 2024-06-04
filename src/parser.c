@@ -14,20 +14,20 @@
 
 #define EAT (void)lexnext(p.l)
 
-static struct stmt parse_stmt(struct parser);
-static struct andor parse_andor(struct parser);
-static struct pipe parse_pipe(struct parser);
-static struct unit parse_unit(struct parser);
-static struct cmpnd parse_cmpnd(struct parser);
-static struct cmd parse_cmd(struct parser);
-static struct value parse_value(struct parser);
-static struct list parse_list(struct parser);
-static struct u8view parse_word(struct parser);
+static struct stmt prsstmt(struct parser);
+static struct andor prsandor(struct parser);
+static struct pipe prspipe(struct parser);
+static struct unit prsunit(struct parser);
+static struct cmpnd prscmpnd(struct parser);
+static struct cmd prscmd(struct parser);
+static struct value prsvalue(struct parser);
+static struct list prslist(struct parser);
+static struct u8view prsword(struct parser);
 [[unsequenced]] static int hex(char);
 [[unsequenced]] static bool tokisval(enum lextokkind);
 
 struct program *
-parse_program(struct parser p)
+prsprog(struct parser p)
 {
 	struct arena_ctx ctx = {.a = p.a};
 	struct program *prog = arena_new(p.a, struct program, 1);
@@ -45,7 +45,7 @@ parse_program(struct parser p)
 			EAT;
 		}
 
-		struct stmt stmt = parse_stmt(p);
+		struct stmt stmt = prsstmt(p);
 		DAPUSH(prog, stmt);
 
 		if ((t = lexpeek(p.l)).kind > _LTK_TERM)
@@ -79,21 +79,21 @@ out:
 }
 
 static struct stmt
-parse_stmt(struct parser p)
+prsstmt(struct parser p)
 {
 	struct stmt stmt = {
 		.kind = SK_ANDOR,
-		.ao = parse_andor(p),
+		.ao = prsandor(p),
 	};
 	return stmt;
 }
 
 static struct andor
-parse_andor(struct parser p)
+prsandor(struct parser p)
 {
 	struct andor ao = {};
 
-	struct pipe pipe = parse_pipe(p);
+	struct pipe pipe = prspipe(p);
 	if (pipe.len == 0)
 		return ao;
 	if ((ao.r = arena_new(p.a, struct pipe, 1)) == nullptr)
@@ -127,7 +127,7 @@ parse_andor(struct parser p)
 		while (lexpeek(p.l).kind == LTK_NL)
 			EAT;
 
-		pipe = parse_pipe(p);
+		pipe = prspipe(p);
 		if (pipe.len == 0) {
 			erremit(p.l->file, p.l->base, t.sv, t.sv.p - p.l->base,
 			        "‘%.*s’ operator missing right-hand side oprand",
@@ -143,7 +143,7 @@ parse_andor(struct parser p)
 }
 
 static struct pipe
-parse_pipe(struct parser p)
+prspipe(struct parser p)
 {
 	struct arena_ctx ctx = {.a = p.a};
 	struct pipe pipe = {
@@ -151,7 +151,7 @@ parse_pipe(struct parser p)
 		.ctx = &ctx,
 	};
 
-	struct unit u = parse_unit(p);
+	struct unit u = prsunit(p);
 	if (u.kind == -1)
 		return pipe;
 	DAPUSH(&pipe, u);
@@ -168,7 +168,7 @@ parse_pipe(struct parser p)
 		while (lexpeek(p.l).kind == LTK_NL)
 			EAT;
 
-		u = parse_unit(p);
+		u = prsunit(p);
 		if (u.kind == -1) {
 			erremit(p.l->file, p.l->base, t.sv, t.sv.p - p.l->base,
 			        "‘%.*s’ operator missing right-hand side oprand", 1, "|");
@@ -181,7 +181,7 @@ parse_pipe(struct parser p)
 }
 
 static struct unit
-parse_unit(struct parser p)
+prsunit(struct parser p)
 {
 	bool saw_bang = false;
 	struct unit u = {.neg = false};
@@ -198,10 +198,10 @@ parse_unit(struct parser p)
 
 	if (lexpeek(p.l).kind == LTK_BRC_O) {
 		u.kind = UK_CMPND;
-		u.cp = parse_cmpnd(p);
+		u.cp = prscmpnd(p);
 	} else {
 		u.kind = UK_CMD;
-		u.c = parse_cmd(p);
+		u.c = prscmd(p);
 		if (u.c.len == 0) {
 			if (saw_bang) {
 				erremit(p.l->file, p.l->base, last.sv, last.sv.p - p.l->base,
@@ -216,7 +216,7 @@ parse_unit(struct parser p)
 }
 
 static struct cmpnd
-parse_cmpnd(struct parser p)
+prscmpnd(struct parser p)
 {
 	struct arena_ctx ctx = {.a = p.a};
 	struct cmpnd cmpnd = {
@@ -227,7 +227,7 @@ parse_cmpnd(struct parser p)
 	struct lextok open = lexnext(p.l);
 
 	for (;;) {
-		struct stmt stmt = parse_stmt(p);
+		struct stmt stmt = prsstmt(p);
 		DAPUSH(&cmpnd, stmt);
 		enum lextokkind k;
 		while ((k = lexpeek(p.l).kind) > _LTK_TERM) {
@@ -248,7 +248,7 @@ parse_cmpnd(struct parser p)
 }
 
 static struct cmd
-parse_cmd(struct parser p)
+prscmd(struct parser p)
 {
 	struct arena_ctx ctx = {.a = p.a};
 	struct cmd cmd = {
@@ -257,7 +257,7 @@ parse_cmd(struct parser p)
 	};
 
 	for (;;) {
-		struct value v = parse_value(p);
+		struct value v = prsvalue(p);
 		if (v.kind == -1)
 			break;
 		DAPUSH(&cmd, v);
@@ -267,7 +267,7 @@ parse_cmd(struct parser p)
 }
 
 static struct value
-parse_value(struct parser p)
+prsvalue(struct parser p)
 {
 	struct value v = {};
 	struct lextok t = lexpeek(p.l);
@@ -281,7 +281,7 @@ parse_value(struct parser p)
 		break;
 	case LTK_WORD:
 		v.kind = VK_WORD;
-		v.w = parse_word(p);
+		v.w = prsword(p);
 		break;
 	case LTK_VAR:
 	case LTK_VARL:
@@ -304,7 +304,7 @@ parse_value(struct parser p)
 		v.v.ctx = &ctx;
 
 		for (;;) {
-			struct value _v = parse_value(p);
+			struct value _v = prsvalue(p);
 			if (_v.kind == -1)
 				break;
 			DAPUSH(&v.v, _v);
@@ -332,11 +332,11 @@ parse_value(struct parser p)
 		break;
 	case LTK_SEL:
 		v.kind = VK_SEL;
-		v.l = parse_list(p);
+		v.l = prslist(p);
 		break;
 	case LTK_PAR_O:
 		v.kind = VK_LIST;
-		v.l = parse_list(p);
+		v.l = prslist(p);
 		break;
 	default:
 		v.kind = -1;
@@ -353,7 +353,7 @@ parse_value(struct parser p)
 		if (v.c.l == nullptr || v.c.r == nullptr)
 			err("arena_new:");
 		*v.c.l = _v;
-		*v.c.r = parse_value(p);
+		*v.c.r = prsvalue(p);
 		ASSUME(v.c.r->kind != -1);
 	}
 
@@ -361,7 +361,7 @@ parse_value(struct parser p)
 }
 
 static struct list
-parse_list(struct parser p)
+prslist(struct parser p)
 {
 	struct lextok open = lexnext(p.l);
 	struct arena_ctx ctx = {.a = p.a};
@@ -371,7 +371,7 @@ parse_list(struct parser p)
 	};
 
 	for (;;) {
-		struct value v = parse_value(p);
+		struct value v = prsvalue(p);
 		if (v.kind == -1)
 			break;
 		DAPUSH(&l, v);
@@ -387,7 +387,7 @@ parse_list(struct parser p)
 }
 
 static struct u8view
-parse_word(struct parser p)
+prsword(struct parser p)
 {
 	struct lextok t = lexnext(p.l);
 	struct u8view sv = {};

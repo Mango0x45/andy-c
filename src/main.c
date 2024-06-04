@@ -95,7 +95,7 @@ rloop(void)
 			},
 		};
 		if (setjmp(onerr) == 0) {
-			struct program *p = parse_program((struct parser){
+			struct program *p = prsprog((struct parser){
 				.l = &lexer,
 				.a = &a,
 				.err = &onerr,
@@ -103,7 +103,7 @@ rloop(void)
 			if (p == nullptr)
 				warn("failed to parse");
 			struct ctx ctx = {.a = &a};
-			ret = exec_prog(*p, ctx);
+			ret = execprog(*p, ctx);
 		}
 		arena_free(&a);
 
@@ -146,7 +146,7 @@ readfile(FILE *stream)
 	if (setjmp(onerr) != 0)
 		exit(EXIT_FAILURE);
 
-	struct program *p = parse_program((struct parser){
+	struct program *p = prsprog((struct parser){
 		.l = &lexer,
 		.a = &a,
 		.err = &onerr,
@@ -155,7 +155,7 @@ readfile(FILE *stream)
 		warn("failed to parse");
 	struct ctx ctx = {.a = &a};
 	shellinit();
-	int ret = exec_prog(*p, ctx);
+	int ret = execprog(*p, ctx);
 
 	arena_free(&a);
 	free(bob.buf);

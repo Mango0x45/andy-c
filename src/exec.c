@@ -27,12 +27,12 @@ struct strarr {
 	size_t n;
 };
 
-static int exec_stmt(struct stmt, struct ctx);
-static int exec_andor(struct andor, struct ctx);
-static int exec_pipe(struct pipe, struct ctx);
-static int exec_unit(struct unit, struct ctx);
-static int exec_cmpnd(struct cmpnd, struct ctx);
-static int exec_cmd(struct cmd, struct ctx);
+static int execstmt(struct stmt, struct ctx);
+static int execandor(struct andor, struct ctx);
+static int execpipe(struct pipe, struct ctx);
+static int execunit(struct unit, struct ctx);
+static int execcmpnd(struct cmpnd, struct ctx);
+static int execcmd(struct cmd, struct ctx);
 
 static struct strarr valtostrs(struct value, alloc_fn, void *);
 static void *memcpyz(void *restrict, const void *restrict, size_t);
@@ -61,10 +61,10 @@ shellinit(void)
 }
 
 int
-exec_prog(struct program p, struct ctx ctx)
+execprog(struct program p, struct ctx ctx)
 {
 	da_foreach (p, e) {
-		int ret = exec_stmt(*e, ctx);
+		int ret = execstmt(*e, ctx);
 		if (ret != EXIT_SUCCESS)
 			return ret;
 	}
@@ -72,17 +72,17 @@ exec_prog(struct program p, struct ctx ctx)
 }
 
 int
-exec_stmt(struct stmt stmt, struct ctx ctx)
+execstmt(struct stmt stmt, struct ctx ctx)
 {
 	switch (stmt.kind) {
 	case SK_ANDOR:
-		return exec_andor(stmt.ao, ctx);
+		return execandor(stmt.ao, ctx);
 	}
 	unreachable();
 }
 
 int
-exec_andor(struct andor ao, struct ctx ctx)
+execandor(struct andor ao, struct ctx ctx)
 {
 	if (ao.r == nullptr)
 		return EXIT_SUCCESS;
@@ -90,29 +90,29 @@ exec_andor(struct andor ao, struct ctx ctx)
 	int ret;
 	switch (ao.op) {
 	case '&':
-		ret = exec_andor(*ao.l, ctx);
+		ret = execandor(*ao.l, ctx);
 		if (ret == EXIT_SUCCESS)
-			ret = exec_pipe(*ao.r, ctx);
+			ret = execpipe(*ao.r, ctx);
 		break;
 	case '|':
-		ret = exec_andor(*ao.l, ctx);
+		ret = execandor(*ao.l, ctx);
 		if (ret != EXIT_SUCCESS)
-			ret = exec_pipe(*ao.r, ctx);
+			ret = execpipe(*ao.r, ctx);
 		break;
 	default:
-		return exec_pipe(*ao.r, ctx);
+		return execpipe(*ao.r, ctx);
 	}
 
 	return ret;
 }
 
 int
-exec_pipe(struct pipe p, struct ctx ctx)
+execpipe(struct pipe p, struct ctx ctx)
 {
 	ASSUME(p.len > 0);
 
 	if (p.len == 1)
-		return exec_unit(p.buf[0], ctx);
+		return execunit(p.buf[0], ctx);
 
 	pid_t *pids = arena_new(ctx.a, pid_t, p.len);
 	if (pids == nullptr)
@@ -151,7 +151,7 @@ exec_pipe(struct pipe p, struct ctx ctx)
 					err("dup2");
 				close(nfds[i]);
 			}
-			exit(exec_unit(p.buf[i], ctx));
+			exit(execunit(p.buf[i], ctx));
 		}
 
 		pids[i] = pid;
@@ -172,15 +172,15 @@ exec_pipe(struct pipe p, struct ctx ctx)
 }
 
 int
-exec_unit(struct unit u, struct ctx ctx)
+execunit(struct unit u, struct ctx ctx)
 {
 	int ret;
 	switch (u.kind) {
 	case UK_CMD:
-		ret = exec_cmd(u.c, ctx);
+		ret = execcmd(u.c, ctx);
 		break;
 	case UK_CMPND:
-		ret = exec_cmpnd(u.cp, ctx);
+		ret = execcmpnd(u.cp, ctx);
 		break;
 	}
 	if (!u.neg)
@@ -189,18 +189,18 @@ exec_unit(struct unit u, struct ctx ctx)
 }
 
 int
-exec_cmpnd(struct cmpnd cp, struct ctx ctx)
+execcmpnd(struct cmpnd cp, struct ctx ctx)
 {
 	int ret = EXIT_SUCCESS;
 	da_foreach (cp, stmt) {
-		if ((ret = exec_stmt(*stmt, ctx)) != EXIT_SUCCESS)
+		if ((ret = execstmt(*stmt, ctx)) != EXIT_SUCCESS)
 			break;
 	}
 	return ret;
 }
 
 int
-exec_cmd(struct cmd c, struct ctx)
+execcmd(struct cmd c, struct ctx)
 {
 	int ret;
 	arena a = mkarena(0);

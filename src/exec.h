@@ -11,7 +11,7 @@ struct ctx {
 };
 
 void shellinit(void);
-int exec_prog(struct program, struct ctx);
+int execprog(struct program, struct ctx);
 
 extern struct symtab symboltable;
 
