@@ -216,6 +216,7 @@ lexnext(struct lexer *l)
 						{
 							report(hl, ESUNIRANGE);
 						}
+					} else if (rishws(ch)) {
 					} else if (ch == ']' && closbrkt) {
 					} else if ((e = escape(ch, true)) == 0) {
 						VSHFT(&l->sv, -w);

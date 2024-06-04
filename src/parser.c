@@ -405,10 +405,10 @@ parse_word(struct parser p)
 			uint8_t b = (hex(t.sv.p[i + 1]) << 4) | hex(t.sv.p[i + 2]);
 			i += 2;
 			wp[sv.len++] = b;
-		} else if (t.sv.p[i] == ']') {
-			wp[sv.len++] = ']';
-		} else
-			wp[sv.len++] = escape(t.sv.p[i], true);
+		} else {
+			char ch = escape(t.sv.p[i], false);
+			wp[sv.len++] = ch != 0 ? ch : t.sv.p[i];
+		}
 	}
 	sv.p = wp;
 	return sv;
