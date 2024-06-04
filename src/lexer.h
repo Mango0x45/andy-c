@@ -7,18 +7,19 @@
 #include <mbstring.h>
 
 enum lextokkind {
-	LTK_BRC_C, /* Closing brace */
-	LTK_BRC_O, /* Opening brace */
-	LTK_LAND,  /* Logical AND */
-	LTK_LOR,   /* Logical OR */
-	LTK_PAR_C, /* Closing parenthesis */
-	LTK_PAR_O, /* Opening parenthesis */
-	LTK_PIPE,  /* Pipe */
-	LTK_VAR,   /* Variable */
-	LTK_VARL,  /* Variable length */
-	LTK_VAR_C, /* Closing bracket of variable */
-	LTK_VAR_O, /* Variable with opening bracket */
-	LTK_WORD,  /* Word */
+	LTK_BRC_C,  /* Closing brace */
+	LTK_BRC_O,  /* Opening brace */
+	LTK_LAND,   /* Logical AND */
+	LTK_LOR,    /* Logical OR */
+	LTK_PAR_C,  /* Closing parenthesis */
+	LTK_PAR_O,  /* Opening parenthesis */
+	LTK_PIPE,   /* Pipe */
+	LTK_VAR,    /* Variable */
+	LTK_VARL,   /* Variable length */
+	LTK_VARL_O, /* Variable length with opening bracket */
+	LTK_VAR_C,  /* Closing bracket of variable */
+	LTK_VAR_O,  /* Variable with opening bracket */
+	LTK_WORD,   /* Word */
 
 	/* All enumeration values after this point represent something that could be
 	   the end of a unit */

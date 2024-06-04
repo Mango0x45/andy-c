@@ -110,10 +110,10 @@ lexnext(struct lexer *l)
 					break;
 				}
 			}
-			if (tok.sv.len == 1)
+			if (tok.sv.len == 1 + (tok.kind == LTK_VARL))
 				report(tok.sv, EVEMPTY);
 			if (ch == '[') {
-				tok.kind = LTK_VAR_O;
+				tok.kind = tok.kind == LTK_VAR ? LTK_VAR_O : LTK_VARL_O;
 				VSHFT(&l->sv, 1);
 				DAPUSH(&l->states, LS_VAR);
 			}

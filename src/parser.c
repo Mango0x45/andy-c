@@ -279,9 +279,10 @@ parse_value(struct parser p)
 		break;
 	case LTK_VAR:
 	case LTK_VARL:
+	case LTK_VARL_O:
 	case LTK_VAR_O:
 		v.v.ident = t.sv;
-		if (t.kind == LTK_VARL) {
+		if (t.kind == LTK_VARL || t.kind == LTK_VARL_O) {
 			v.kind = VK_VARL;
 			VSHFT(&v.v.ident, 2);
 		} else {
@@ -423,6 +424,7 @@ tokisval(enum lextokkind k)
 	case LTK_PAR_O:
 	case LTK_VAR:
 	case LTK_VARL:
+	case LTK_VARL_O:
 	case LTK_VAR_O:
 	case LTK_WORD:
 		return true;

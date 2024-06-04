@@ -289,7 +289,9 @@ var_out:
 		      alignof(char8_t));
 		break;
 	}
-	case VK_VARL:
+	case VK_VARL: {
+		constexpr size_t SIZE_STR_MAX = 21;
+
 		sa.n = 1;
 		sa.p = alloc(ctx, nullptr, 0, 1, sizeof(char *), alignof(char *));
 
@@ -297,15 +299,27 @@ var_out:
 		sym.p = ucsnorm(&sym.len, v.v.ident, alloc, ctx, NF_NFC);
 
 		struct vartab *vt = symtabget(symboltable, sym);
-		if (vt == nullptr || vt->len == 0)
+		if (vt == nullptr || vt->len == 0) {
 			sa.p[0] = "0";
-		else {
-			constexpr size_t SIZE_STR_MAX = 21;
-			sa.p[0] = alloc(ctx, nullptr, 0, SIZE_STR_MAX, sizeof(char),
-			                alignof(char));
-			snprintf(sa.p[0], SIZE_STR_MAX, "%zu", vt->len);
+			break;
 		}
+
+		sa.p[0] = alloc(ctx, nullptr, 0, SIZE_STR_MAX, sizeof(char),
+		                alignof(char));
+
+		size_t cnt = v.v.len == 0 ? vt->len : 0;
+		da_foreach (v.v, _v) {
+			struct strarr xs = valtostrs(*_v, alloc, ctx);
+			for (size_t i = 0; i < xs.n; i++) {
+				struct u8view k = {xs.p[i], strlen(xs.p[i])};
+				if (vartabget(*vt, k) != nullptr)
+					cnt++;
+			}
+		}
+
+		snprintf(sa.p[0], SIZE_STR_MAX, "%zu", cnt);
 		break;
+	}
 	case VK_LIST:
 		sa.n = 0;
 		sa.p = nullptr;
