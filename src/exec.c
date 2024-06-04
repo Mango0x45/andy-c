@@ -37,14 +37,32 @@ static int exec_cmd(struct cmd, struct ctx);
 static struct strarr valtostrs(struct value, alloc_fn, void *);
 static void *memcpyz(void *restrict, const void *restrict, size_t);
 
+constexpr size_t SIZE_STR_MAX = 21;
 struct symtab symboltable;
+
+void
+shellinit(void)
+{
+	struct u8view k;
+	struct vartab *vt;
+
+	vt = symtabadd(&symboltable, U8("shell"), mkvartab());
+
+	k.p = bufalloc(nullptr, SIZE_STR_MAX, sizeof(char));
+	k.len = snprintf((char *)k.p, SIZE_STR_MAX, "%zu", (size_t)getpid());
+	vartabadd(vt, U8("pid"), k);
+
+	k.p = bufalloc(nullptr, SIZE_STR_MAX, sizeof(char));
+	k.len = snprintf((char *)k.p, SIZE_STR_MAX, "%zu", (size_t)getppid());
+	vartabadd(vt, U8("ppid"), k);
+
+	if (setenv("SHELL", "Andy", 1) == -1)
+		warn("setenv: SHELL=Andy:");
+}
 
 int
 exec_prog(struct program p, struct ctx ctx)
 {
-	if (setenv("SHELL", "Andy", 1) == -1)
-		warn("setenv: SHELL=Andy:");
-
 	da_foreach (p, e) {
 		int ret = exec_stmt(*e, ctx);
 		if (ret != EXIT_SUCCESS)
@@ -314,8 +332,6 @@ var_out:
 		break;
 	}
 	case VK_VARL: {
-		constexpr size_t SIZE_STR_MAX = 21;
-
 		sa.n = 1;
 		sa.p = alloc(ctx, nullptr, 0, 1, sizeof(char *), alignof(char *));
 

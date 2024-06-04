@@ -10,6 +10,7 @@ struct ctx {
 	arena *a;
 };
 
+void shellinit(void);
 int exec_prog(struct program, struct ctx);
 
 extern struct symtab symboltable;

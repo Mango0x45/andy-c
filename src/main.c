@@ -62,6 +62,8 @@ rloop(void)
 	if ((err = read_history(histfile)) != 0)
 		warn("read_history: %s: %s", histfile, strerror(err));
 
+	shellinit();
+
 	for (;;) {
 		snprintf(prompt, sizeof(prompt), "[%d] > ", ret);
 		char *save = readline(prompt);
@@ -152,6 +154,7 @@ readfile(FILE *stream)
 	if (p == nullptr)
 		warn("failed to parse");
 	struct ctx ctx = {.a = &a};
+	shellinit();
 	int ret = exec_prog(*p, ctx);
 
 	arena_free(&a);
