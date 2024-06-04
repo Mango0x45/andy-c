@@ -65,7 +65,7 @@ If any mistakes are found or information is missing,
 feel free to contact
 .I mail@thomasvoss.com
 or to submit a patch to the official Git repository at
-.I https://git.sr.ht/~mango/andy .
+.I https://github.com/Mango0x45/andy-c .
 .bp
 .
 .\" Begin counting pages
@@ -91,7 +91,6 @@ while still remaining small, simple, and close to the UNIX spirit.
 .
 .LP
 This shell is dedicated to Andy Zaidman.
-So much so in fact, that the shell is named after him.
 .
 .
 .H 2 "Conventions In This Document"
@@ -120,9 +119,9 @@ In Andy, a
 .I value
 is syntactical element which expands to one or more strings.
 These strings are then interpreted literally by the shell.
-The list
+The value
 .CW <{foo} ’ ‘
-for example is a value which expands to the string ‘/dev/fd/N’
+for example expands to the string ‘/dev/fd/N’
 (where ‘N’ is some integer).
 This particular value is known as a
 .I "process redirection" ,
@@ -149,16 +148,18 @@ avoiding any potential unwanted behavior.
 .LP
 All statements in Andy have an
 .I "exit code" .
-This exit code is an integer in the range of 0–255 and may be inspected
+This exit code is an integer in the range of 0–256 and may be inspected
 through the magic variable
 .CW $status
 directly after executing a statement.
 As is the UNIX tradition,
 an exit code of 0 represents successful execution
 while a nonzero exit code represents failure.
-Andy will typically use an exit code of 255 to represent a shell-error,
+Andy will typically use an exit code of 256 to represent a shell-error,
 such as failure to open a file for a redirection,
 or a syntax error during interactive use.
+Execution of a program will always return an exit status in the range
+0–255.
 .LP
 Unlike in most traditional shells,
 Andy will automatically cede execution at the first nonzero exit code
@@ -203,7 +204,7 @@ arguments.
 .SC
 $ cat file
 hello world
-$ echo hello; echo bar
+$ echo hello; echo world
 hello
 world
 $ echo <{true}
@@ -240,7 +241,7 @@ multiple simple commands as one single unit.
 This is possible with compound commands;
 a sequence of commands enclosed in braces.
 .SC
-$ echo foo bar | { read -d\(aq \(aq -n1 x; cat } | tr a-z A-Z
+$ echo foo bar | { read -d\(aq \(aq -n1 x; tr a-z A-Z }
 BAR
 $ echo $x
 foo
