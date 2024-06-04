@@ -16,4 +16,7 @@
    META is true then also allow escaping metacharacters. */
 [[unsequenced, nodiscard]] rune escape(rune, bool meta);
 
+/* Test if a rune is valid in a variable shorthand identifier */
+[[unsequenced, nodiscard]] bool risvar(rune);
+
 #endif /* !ANDY_SYNTAX_H */

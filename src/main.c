@@ -81,11 +81,16 @@ rloop(void)
 
 		jmp_buf onerr;
 		arena a = mkarena(0);
+		struct arena_ctx ctx = {.a = &a};
 		struct lexer lexer = {
 			.file = "<stdin>",
 			.sv = line,
 			.base = line.p,
 			.err = &onerr,
+			.states = {
+				.alloc = alloc_arena,
+				.ctx = &ctx,
+			},
 		};
 		if (setjmp(onerr) == 0) {
 			struct program *p = parse_program((struct parser){
@@ -127,11 +132,16 @@ readfile(FILE *stream)
 
 	jmp_buf onerr;
 	arena a = mkarena(0);
+	struct arena_ctx a_ctx = {.a = &a};
 	struct lexer lexer = {
 		.file = "<stdin>",
 		.sv = (struct u8view){bob.buf, bob.len - 1},
 		.base = bob.buf,
 		.err = &onerr,
+		.states = {
+			.alloc = alloc_arena,
+			.ctx = &a_ctx,
+		},
 	};
 
 	if (setjmp(onerr) != 0)

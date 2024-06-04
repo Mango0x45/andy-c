@@ -277,6 +277,46 @@ parse_value(struct parser p)
 		v.kind = VK_WORD;
 		v.w = parse_word(p);
 		break;
+	case LTK_VAR:
+	case LTK_VAR_O:
+		v.kind = VK_VAR;
+		v.v.ident = t.sv;
+		VSHFT(&v.v.ident, 1);
+		EAT;
+		if (t.kind == LTK_VAR)
+			break;
+
+		struct arena_ctx ctx = {.a = p.a};
+		v.v.alloc = alloc_arena;
+		v.v.ctx = &ctx;
+
+		for (;;) {
+			struct value _v = parse_value(p);
+			if (_v.kind == -1)
+				break;
+			DAPUSH(&v.v, _v);
+		}
+
+		struct lextok close = lexnext(p.l);
+		if (close.kind == LTK_EOF) {
+			t.sv.len++; /* Include ‘[’ */
+			erremit(p.l->file, p.l->base, t.sv, t.sv.p - p.l->base,
+					"unterminated variable index list");
+			longjmp(*p.err, 1);
+		}
+		if (close.kind != LTK_VAR_C) {
+			erremit(p.l->file, p.l->base, close.sv, close.sv.p - p.l->base,
+					"invalid token in variable index list");
+			longjmp(*p.err, 1);
+		}
+
+		if (v.v.len == 0) {
+			t.sv.len = close.sv.p - t.sv.p + close.sv.len;
+			erremit(p.l->file, p.l->base, t.sv, t.sv.p - p.l->base,
+					"variable index list is empty");
+			longjmp(*p.err, 1);
+		}
+		break;
 	case LTK_PAR_O:
 		v.kind = VK_LIST;
 		v.l = parse_list(p);
@@ -352,6 +392,8 @@ parse_word(struct parser p)
 			uint8_t b = (hex(t.sv.p[i + 1]) << 4) | hex(t.sv.p[i + 2]);
 			i += 2;
 			wp[sv.len++] = b;
+		} else if (t.sv.p[i] == ']') {
+			wp[sv.len++] = ']';
 		} else
 			wp[sv.len++] = escape(t.sv.p[i], true);
 	}
@@ -371,5 +413,13 @@ hex(char ch)
 bool
 tokisval(enum lextokkind k)
 {
-	return k == LTK_WORD || k == LTK_PAR_O;
+	switch (k) {
+	case LTK_PAR_O:
+	case LTK_VAR:
+	case LTK_VAR_O:
+	case LTK_WORD:
+		return true;
+	default:
+		return false;
+	}
 }

@@ -3,6 +3,7 @@
 #include <bitset.h>
 #include <macros.h>
 #include <rune.h>
+#include <unicode/prop.h>
 
 #include "syntax.h"
 
@@ -31,13 +32,13 @@ static constexpr char escapes[] = {
 static constexpr char escapes_meta[] = {
 	['a'] = '\a', ['b'] = '\b', ['t'] = '\t',   ['n'] = '\n',  ['v'] = '\v',
 	['f'] = '\f', ['r'] = '\r', ['e'] = '\x1B', ['\\'] = '\\', ['#'] = '#',
-	['&'] = '&',  ['|'] = '|',  [';'] = ';',    ['{'] = '{',   ['}'] = '}',
-	['('] = '(',  [')'] = ')',
+	['&'] = '&',  ['('] = '(',  [')'] = ')',    [';'] = ';',   ['{'] = '{',
+	['|'] = '|',  ['}'] = '}',  ['$'] = '$',
 };
 
 /* See gen/meta */
 static constexpr bitset(meta, ASCII_MAX + 1) = {
-	0x00, 0x00, 0x00, 0x00, 0x48, 0x03, 0x00, 0x08,
+	0x00, 0x00, 0x00, 0x00, 0x58, 0x03, 0x00, 0x08,
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x38,
 };
 
@@ -73,4 +74,11 @@ escape(rune ch, bool meta)
 	if (meta)
 		return ch >= lengthof(escapes_meta) ? 0 : escapes_meta[ch];
 	return ch >= lengthof(escapes) ? 0 : escapes[ch];
+}
+
+bool
+risvar(rune ch)
+{
+	return uprop_is_xidc(ch) || ch == U'′' || ch == U'″' || ch == U'‴'
+	    || ch == U'⁗';
 }

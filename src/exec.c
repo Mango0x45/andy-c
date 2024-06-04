@@ -9,11 +9,13 @@
 #include <dynarr.h>
 #include <errors.h>
 #include <macros.h>
+#include <unicode/string.h>
 
 #include "builtin.h"
 #include "exec.h"
 #include "parser.h"
 #include "symtab.h"
+#include "vartab.h"
 
 struct strs {
 	dafields(char *)
@@ -230,6 +232,56 @@ valtostrs(struct value v, alloc_fn alloc, void *ctx)
 		sa.p[0] = alloc(ctx, nullptr, 0, v.w.len + 1, sizeof(char),
 		                alignof(char));
 		((char *)memcpy(sa.p[0], v.w.p, v.w.len))[v.w.len] = '\0';
+		break;
+	case VK_VAR:
+		struct u8view sym;
+		sym.p = ucsnorm(&sym.len, v.v.ident, alloc, ctx, NF_NFC);
+
+		struct vartab *vt = symtabget(symboltable, sym);
+		if (vt == nullptr || vt->len == 0) {
+			sa.n = 0;
+			goto var_out;
+		}
+
+		if (v.v.len != 0) {
+			sa.n = 0;
+			sa.p = nullptr;
+
+			da_foreach (v.v, _v) {
+				struct strarr xs = valtostrs(*_v, alloc, ctx);
+				for (size_t i = 0; i < xs.n; i++) {
+					struct u8view k = {xs.p[i], strlen(xs.p[i])};
+					struct u8view *v = vartabget(*vt, k);
+					if (v == nullptr)
+						continue;
+
+					sa.p = alloc(ctx, sa.p, sa.n, sa.n + 1, sizeof(char *),
+					             alignof(char *));
+					sa.p[sa.n] = alloc(ctx, nullptr, 0, v->len + 1,
+					                   sizeof(char), alignof(char));
+					((char *)memcpy(sa.p[sa.n], v->p, v->len))[v->len] = '\0';
+					sa.n++;
+				}
+			}
+		} else {
+			sa.n = vt->len;
+			sa.p = alloc(ctx, nullptr, 0, sa.n, sizeof(char *),
+			             alignof(char *));
+
+			for (size_t i = 0, j = 0; i < vt->cap; i++) {
+				da_foreach (vt->bkts[i], kv) {
+					sa.p[j] = alloc(ctx, nullptr, 0, kv->v.len + 1,
+					                sizeof(char), alignof(char));
+					((char *)memcpy(sa.p[j], kv->v.p,
+					                kv->v.len))[kv->v.len] = '\0';
+					j++;
+				}
+			}
+		}
+
+var_out:
+		alloc(ctx, (void *)sym.p, sym.len, 0, sizeof(char8_t),
+		      alignof(char8_t));
 		break;
 	case VK_LIST:
 		sa.n = 0;

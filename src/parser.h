@@ -10,6 +10,7 @@
 enum valkind : int {
 	VK_CONCAT,
 	VK_LIST,
+	VK_VAR,
 	VK_WORD,
 };
 
@@ -30,12 +31,18 @@ struct concat {
 	struct value *l, *r;
 };
 
+struct var {
+	struct u8view ident;
+	dafields(struct value)
+};
+
 struct value {
 	enum valkind kind;
 	union {
 		struct concat c;
 		struct list l;
 		struct u8view w;
+		struct var v;
 	};
 };
 

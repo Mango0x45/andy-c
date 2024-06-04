@@ -23,6 +23,7 @@
 #define ESUNIOPEN  "Unicode escape sequence missing opening brace"
 #define ESUNIRANGE "Unicode codepoints must be between 0–10FFFF"
 #define ESUNIZERO  "leading zeros are disallowed in Unicode escape sequences"
+#define EVEMPTY    "variable reference missing identifier"
 
 #define report(hl, ...)                                                        \
 	do {                                                                       \
@@ -57,6 +58,9 @@ lexnext(struct lexer *l)
 			continue;
 		struct lextok tok = {.sv.p = l->sv.p - w};
 
+		bool closbrkt = l->states.len != 0
+		             && l->states.buf[l->states.len - 1] == LS_VAR;
+
 		if (ch == '#') {
 			do
 				w = ucsnext(&ch, &l->sv);
@@ -89,12 +93,38 @@ lexnext(struct lexer *l)
 		} else if (ch == ')') {
 			tok.sv.len = 1;
 			tok.kind = LTK_PAR_C;
+		} else if (ch == ']' && closbrkt) {
+			tok.sv.len = 1;
+			tok.kind = LTK_VAR_C;
+			(void)DAPOP(&l->states);
+		} else if (ch == '$') {
+			tok.sv.len = 1;
+			tok.kind = LTK_VAR;
+
+			rune ch;
+			for (int w; (w = ucsnext(&ch, &l->sv)) != 0; tok.sv.len += w) {
+				if (!risvar(ch)) {
+					VSHFT(&l->sv, -w);
+					break;
+				}
+			}
+			if (tok.sv.len == 1)
+				report(tok.sv, EVEMPTY);
+			if (ch == '[') {
+				tok.kind = LTK_VAR_O;
+				VSHFT(&l->sv, 1);
+				DAPUSH(&l->states, LS_VAR);
+			}
 		} else {
 			size_t n = 0;
 			VSHFT(&l->sv, -w);
+
 			do {
 				rune e;
 				n += w = ucsnext(&ch, &l->sv);
+
+				if (ch == ']' && closbrkt)
+					break;
 
 				if (w > 0 && ch == '\\') {
 					struct u8view hl = {
@@ -170,6 +200,7 @@ lexnext(struct lexer *l)
 						{
 							report(hl, ESUNIRANGE);
 						}
+					} else if (ch == ']' && closbrkt) {
 					} else if ((e = escape(ch, true)) == 0) {
 						VSHFT(&l->sv, -w);
 						struct u8view g, cpy = l->sv;
