@@ -73,17 +73,21 @@ builtin_false(char **, size_t)
 int
 builtin_get(char **argv, size_t argc)
 {
-	bool kflag, Nflag, vflag;
+	bool eflag, kflag, Nflag, vflag;
 	struct optparser cli = mkoptparser(argv);
 	static const struct cli_option opts[] = {
+		{'e', U8C("environment"),  CLI_NONE},
 		{'k', U8C("keys"),         CLI_NONE},
 		{'N', U8C("no-normalize"), CLI_NONE},
 		{'v', U8C("values"),       CLI_NONE},
 	};
 
-	kflag = Nflag = vflag = false;
+	eflag = kflag = Nflag = vflag = false;
 	for (rune ch; (ch = optparse(&cli, opts, lengthof(opts))) != 0;) {
 		switch (ch) {
+		case 'e':
+			eflag = true;
+			break;
 		case 'k':
 			kflag = true;
 			break;
@@ -97,7 +101,8 @@ builtin_get(char **argv, size_t argc)
 			xwarn("get: %s", cli.errmsg);
 usage:
 			return xwarn("Usage: get [-N] symbol [key ...]\n"
-			             "       get [-N] [-k | -v] symbol");
+			             "       get [-N] -k | -v symbol\n"
+			             "       get [-N] -e symbol");
 		}
 	}
 
@@ -108,12 +113,24 @@ usage:
 		goto usage;
 	if ((kflag || vflag) && argc != 1)
 		goto usage;
+	if ((kflag || vflag) && eflag)
+		goto usage;
 	if (!kflag && !vflag && argc == 0)
 		goto usage;
 
 	struct u8view sym = {argv[0], strlen(argv[0])};
+	if (eflag)
+		sym.len++;
 	if (!Nflag)
 		sym.p = ucsnorm(&sym.len, sym, alloc_heap, nullptr, NF_NFC);
+
+	if (eflag) {
+		char *ev = getenv(sym.p);
+		if (ev != nullptr)
+			puts(ev);
+		goto out;
+	}
+
 	struct vartab *vt = symtabget(symboltable, sym);
 
 	if (vt == nullptr)
@@ -150,19 +167,24 @@ builtin_set(char **argv, size_t argc)
 	if (argc < 2) {
 usage:
 		return xwarn("Usage: set [-N] symbol [value ...]\n"
-		             "       set [-N] -k key symbol [value]");
+		             "       set [-N] [-e | -k key] symbol [value]");
 	}
 
-	bool Nflag = false;
+	bool eflag, Nflag;
 	struct u8view kflag = {};
 	struct optparser cli = mkoptparser(argv);
 	static const struct cli_option opts[] = {
+		{'e', U8C("environment"),  CLI_NONE},
 		{'k', U8C("key"),          CLI_REQ },
 		{'N', U8C("no-normalize"), CLI_NONE},
 	};
 
+	eflag = Nflag = false;
 	for (rune ch; (ch = optparse(&cli, opts, lengthof(opts))) != 0;) {
 		switch (ch) {
+		case 'e':
+			eflag = true;
+			break;
 		case 'k':
 			kflag = cli.optarg;
 			break;
@@ -178,13 +200,25 @@ usage:
 	argc -= cli.optind;
 	argv += cli.optind;
 
-	if (kflag.p != nullptr && argc > 2)
+	if ((eflag || kflag.p != nullptr) && argc > 2)
 		goto usage;
 
 	bool do_free = !Nflag;
 	struct u8view sym = {argv[0], strlen(argv[0])};
+	if (eflag)
+		sym.len++;
 	if (!Nflag)
 		sym.p = ucsnorm(&sym.len, sym, alloc_heap, nullptr, NF_NFC);
+
+	if (eflag) {
+		if (argc < 2) {
+			if (unsetenv(sym.p) == -1)
+				warn("unsetenv: %s:", sym.p);
+		} else {
+			if (setenv(sym.p, argv[1], true) == -1)
+				warn("setenv: %s:", sym.p);
+		}
+	}
 
 	struct vartab *vt = symtabget(symboltable, sym);
 
