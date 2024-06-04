@@ -41,6 +41,10 @@ struct symtab symboltable;
 int
 exec_prog(struct program p, struct ctx ctx)
 {
+	symtabadd(&symboltable, U8("_"), mkvartab());
+	if (setenv("SHELL", "Andy", 1) == -1)
+		warn("setenv: SHELL=Andy:");
+
 	da_foreach (p, e) {
 		int ret = exec_stmt(*e, ctx);
 		if (ret != EXIT_SUCCESS)
