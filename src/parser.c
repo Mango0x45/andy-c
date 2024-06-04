@@ -307,19 +307,19 @@ parse_value(struct parser p)
 		if (close.kind == LTK_EOF) {
 			t.sv.len++; /* Include ‘[’ */
 			erremit(p.l->file, p.l->base, t.sv, t.sv.p - p.l->base,
-					"unterminated variable index list");
+			        "unterminated variable index list");
 			longjmp(*p.err, 1);
 		}
 		if (close.kind != LTK_VAR_C) {
 			erremit(p.l->file, p.l->base, close.sv, close.sv.p - p.l->base,
-					"invalid token in variable index list");
+			        "invalid token in variable index list");
 			longjmp(*p.err, 1);
 		}
 
 		if (v.v.len == 0) {
 			t.sv.len = close.sv.p - t.sv.p + close.sv.len;
 			erremit(p.l->file, p.l->base, t.sv, t.sv.p - p.l->base,
-					"variable index list is empty");
+			        "variable index list is empty");
 			longjmp(*p.err, 1);
 		}
 		break;
