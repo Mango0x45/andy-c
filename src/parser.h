@@ -9,6 +9,7 @@
 
 enum valkind : int {
 	VK_CONCAT,
+	VK_ENV,
 	VK_LIST,
 	VK_VAR,
 	VK_VARL,

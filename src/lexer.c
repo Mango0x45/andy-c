@@ -14,6 +14,7 @@
 #include "lexer.h"
 #include "syntax.h"
 
+#define EEVEMPTY   "environment variable reference missing identifier"
 #define ESEOF      "expected escape sequence but got end of file"
 #define ESHEXBAD   "hexadecimal escape sequence not followed by two hex digits"
 #define ESINVAL    "invalid escape sequence ‘%.*s’"
@@ -97,6 +98,19 @@ lexnext(struct lexer *l)
 			tok.sv.len = 1;
 			tok.kind = LTK_VAR_C;
 			(void)DAPOP(&l->states);
+		} else if (ch == '%') {
+			tok.sv.len = 1;
+			tok.kind = LTK_ENV;
+
+			rune ch;
+			for (int w; (w = ucsnext(&ch, &l->sv)) != 0; tok.sv.len += w) {
+				if (!risvar(ch)) {
+					VSHFT(&l->sv, -w);
+					break;
+				}
+			}
+			if (tok.sv.len == 1)
+				report(tok.sv, EEVEMPTY);
 		} else if (ch == '$') {
 			tok.sv.len = 1;
 			tok.kind = LTK_VAR;

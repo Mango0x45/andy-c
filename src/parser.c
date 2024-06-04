@@ -273,6 +273,12 @@ parse_value(struct parser p)
 	struct lextok t = lexpeek(p.l);
 
 	switch (t.kind) {
+	case LTK_ENV:
+		v.kind = VK_ENV;
+		v.w = t.sv;
+		VSHFT(&v.w, 1);
+		EAT;
+		break;
 	case LTK_WORD:
 		v.kind = VK_WORD;
 		v.w = parse_word(p);
@@ -421,6 +427,7 @@ bool
 tokisval(enum lextokkind k)
 {
 	switch (k) {
+	case LTK_ENV:
 	case LTK_PAR_O:
 	case LTK_VAR:
 	case LTK_VARL:
