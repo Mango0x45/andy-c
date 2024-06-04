@@ -42,7 +42,6 @@ struct symtab symboltable;
 int
 exec_prog(struct program p, struct ctx ctx)
 {
-	symtabadd(&symboltable, U8("_"), mkvartab());
 	if (setenv("SHELL", "Andy", 1) == -1)
 		warn("setenv: SHELL=Andy:");
 
