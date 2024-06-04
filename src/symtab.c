@@ -33,7 +33,5 @@ symtabvfree(struct vartab vt)
 	vartabfree(vt);
 }
 
-#define MAPNAME symtab
-#define KEYTYPE struct u8view
-#define VALTYPE struct vartab
-#include "map.h"
+#define MAP_IMPLEMENTATION
+#include "symtab.h"

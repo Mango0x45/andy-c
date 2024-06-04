@@ -18,7 +18,9 @@
 #define BKT     CONCAT(MAPNAME, bkt)
 #define PAIR    CONCAT(MAPNAME, pair)
 #define FUNC(f) CONCAT(MAPNAME, f)
-#define LOADF   0.75
+#ifdef MAP_IMPLEMENTATION
+#	define LOADF 0.75
+#endif
 
 struct PAIR {
 	K k;
@@ -31,6 +33,14 @@ struct MAPNAME {
 	} *bkts;
 	size_t len, cap;
 };
+
+struct MAPNAME CONCAT(mk, MAPNAME)(void);
+void FUNC(free)(struct MAPNAME);
+V *FUNC(add)(struct MAPNAME *, K, V);
+V *FUNC(get)(struct MAPNAME, K);
+void FUNC(del)(struct MAPNAME *, K);
+
+#ifdef MAP_IMPLEMENTATION
 
 static void FUNC(resz)(struct MAPNAME *, size_t);
 
@@ -139,3 +149,15 @@ FUNC(resz)(struct MAPNAME *m, size_t cap)
 	free(m->bkts);
 	*m = _m;
 }
+
+#	undef MAP_IMPLEMENTATION
+#endif /* MAP_IMPLEMENTATION */
+
+#undef K
+#undef V
+#undef BKT
+#undef PAIR
+#undef FUNC
+#undef MAPNAME
+#undef KEYTYPE
+#undef VALTYPE

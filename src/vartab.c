@@ -4,8 +4,6 @@
 #include <macros.h>
 #include <mbstring.h>
 
-#include "vartab.h"
-
 static size_t
 vartabhash(struct u8view sv)
 {
@@ -33,7 +31,5 @@ vartabvfree(struct u8view sv)
 	free((void *)sv.p);
 }
 
-#define MAPNAME vartab
-#define KEYTYPE struct u8view
-#define VALTYPE struct u8view
-#include "map.h"
+#define MAP_IMPLEMENTATION
+#include "vartab.h"
