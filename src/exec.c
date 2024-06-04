@@ -244,7 +244,7 @@ valtostrs(struct value v, alloc_fn alloc, void *ctx)
 		sym.p = ucsnorm(&sym.len, v.v.ident, alloc, ctx, NF_NFC);
 
 		struct vartab *vt = symtabget(symboltable, sym);
-		if (vt != nullptr && vt->len == 0) {
+		if (vt == nullptr || vt->len == 0) {
 			sa.n = 0;
 			goto var_out;
 		}
@@ -252,9 +252,6 @@ valtostrs(struct value v, alloc_fn alloc, void *ctx)
 		if (v.v.len != 0) {
 			sa.n = 0;
 			sa.p = nullptr;
-
-			if (vt == nullptr)
-				goto var_out;
 
 			da_foreach (v.v, _v) {
 				struct strarr xs = valtostrs(*_v, alloc, ctx);
@@ -272,20 +269,6 @@ valtostrs(struct value v, alloc_fn alloc, void *ctx)
 					sa.n++;
 				}
 			}
-		} else if (vt == nullptr) {
-			char *k = alloc(ctx, nullptr, 0, sym.len + 1, sizeof(char),
-			                alignof(char));
-			char *ev = getenv(memcpyz(k, sym.p, sym.len));
-			if (ev == nullptr) {
-				sa.n = 0;
-				goto var_out;
-			}
-			size_t len = strlen(ev);
-			sa.n = 1;
-			sa.p = alloc(ctx, nullptr, 0, 1, sizeof(char *), alignof(char *));
-			sa.p[0] = alloc(ctx, nullptr, 0, len + 1, sizeof(char),
-			                alignof(char));
-			memcpyz(sa.p[0], ev, len);
 		} else {
 			sa.n = vt->len;
 			sa.p = alloc(ctx, nullptr, 0, sa.n, sizeof(char *),
