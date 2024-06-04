@@ -15,6 +15,7 @@ enum lextokkind {
 	LTK_PAR_C,  /* Closing parenthesis */
 	LTK_PAR_O,  /* Opening parenthesis */
 	LTK_PIPE,   /* Pipe */
+	LTK_SEL,    /* Selection list */
 	LTK_VAR,    /* Variable */
 	LTK_VARL,   /* Variable length */
 	LTK_VARL_O, /* Variable length with opening bracket */

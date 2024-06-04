@@ -336,6 +336,17 @@ var_out:
 		snprintf(sa.p[0], SIZE_STR_MAX, "%zu", cnt);
 		break;
 	}
+	case VK_SEL:
+		sa.n = 0;
+		sa.p = nullptr;
+		da_foreach (v.l, _v) {
+			struct strarr _sa = valtostrs(*_v, alloc, ctx);
+			if (_sa.n != 0) {
+				sa = _sa;
+				break;
+			}
+		}
+		break;
 	case VK_LIST:
 		sa.n = 0;
 		sa.p = nullptr;

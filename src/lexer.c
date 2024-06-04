@@ -85,6 +85,9 @@ lexnext(struct lexer *l)
 		} else if (ISLIT("||")) {
 			TOKLIT("||", LTK_LOR);
 			VSHFT(&l->sv, 1);
+		} else if (ISLIT("^(")) {
+			TOKLIT("^(", LTK_SEL);
+			VSHFT(&l->sv, 1);
 		} else if (ch == '|') {
 			tok.sv.len = 1;
 			tok.kind = LTK_PIPE;

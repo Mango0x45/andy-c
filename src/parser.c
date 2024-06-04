@@ -330,6 +330,10 @@ parse_value(struct parser p)
 			longjmp(*p.err, 1);
 		}
 		break;
+	case LTK_SEL:
+		v.kind = VK_SEL;
+		v.l = parse_list(p);
+		break;
 	case LTK_PAR_O:
 		v.kind = VK_LIST;
 		v.l = parse_list(p);
