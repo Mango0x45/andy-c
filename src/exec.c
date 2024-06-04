@@ -107,26 +107,40 @@ exec_pipe(struct pipe p, struct ctx ctx)
 	};
 
 	for (size_t i = 0; i < p.len; i++) {
-		struct ctx nctx = ctx;
+		int nfds[3] = {
+			STDIN_FILENO,
+			STDOUT_FILENO,
+			STDERR_FILENO,
+		};
+
 		if (i > 0)
-			nctx.fds[STDIN_FILENO] = fds[R];
+			nfds[STDIN_FILENO] = fds[R];
 		if (i < p.len - 1) {
 			if (pipe(fds) == -1)
 				err("pipe:");
-			nctx.fds[STDOUT_FILENO] = fds[W];
+			nfds[STDOUT_FILENO] = fds[W];
 		}
 
 		pid_t pid = fork();
 		if (pid == -1)
 			err("fork:");
-		if (pid == 0)
-			exit(exec_unit(p.buf[i], nctx));
+		if (pid == 0) {
+			for (int i = 0; i < (int)lengthof(nfds); i++) {
+				if (nfds[i] == i)
+					continue;
+				close(i);
+				if (dup2(nfds[i], i) == -1)
+					err("dup2");
+				close(nfds[i]);
+			}
+			exit(exec_unit(p.buf[i], ctx));
+		}
 
 		pids[i] = pid;
 		if (i < p.len - 1)
-			close(nctx.fds[STDOUT_FILENO]);
+			close(nfds[STDOUT_FILENO]);
 		if (i > 0)
-			close(nctx.fds[STDIN_FILENO]);
+			close(nfds[STDIN_FILENO]);
 	}
 
 	int ret;
@@ -168,7 +182,7 @@ exec_cmpnd(struct cmpnd cp, struct ctx ctx)
 }
 
 int
-exec_cmd(struct cmd c, struct ctx ctx)
+exec_cmd(struct cmd c, struct ctx)
 {
 	int ret;
 	arena a = mkarena(0);
@@ -205,15 +219,6 @@ exec_cmd(struct cmd c, struct ctx ctx)
 			err("waitpid:");
 		ret = WIFEXITED(ws) ? WEXITSTATUS(ws) : UINT8_MAX + 1;
 		goto out;
-	}
-
-	for (int i = 0; i < (int)lengthof(ctx.fds); i++) {
-		if (ctx.fds[i] != i) {
-			close(i);
-			if (dup2(ctx.fds[i], i) == -1)
-				err("dup2:");
-			close(ctx.fds[i]);
-		}
 	}
 
 	DAPUSH(&argv, nullptr);

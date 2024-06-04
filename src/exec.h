@@ -7,7 +7,6 @@
 #include "symtab.h"
 
 struct ctx {
-	int fds[3];
 	arena *a;
 };
 

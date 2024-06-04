@@ -100,10 +100,7 @@ rloop(void)
 			});
 			if (p == nullptr)
 				warn("failed to parse");
-			struct ctx ctx = {
-				.fds = {STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO},
-				.a = &a,
-			};
+			struct ctx ctx = {.a = &a};
 			ret = exec_prog(*p, ctx);
 		}
 		arena_free(&a);
@@ -154,10 +151,7 @@ readfile(FILE *stream)
 	});
 	if (p == nullptr)
 		warn("failed to parse");
-	struct ctx ctx = {
-		.fds = {STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO},
-		.a = &a,
-	};
+	struct ctx ctx = {.a = &a};
 	int ret = exec_prog(*p, ctx);
 
 	arena_free(&a);
