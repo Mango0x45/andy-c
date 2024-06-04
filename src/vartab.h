@@ -11,7 +11,7 @@ struct vartabpair {
 
 struct vartab {
 	struct vartabbkt {
-		dafields(struct vartabpair)
+		dafields(struct vartabpair);
 	} *bkts;
 	size_t len, cap;
 };

@@ -27,7 +27,7 @@ struct PAIR {
 
 struct MAPNAME {
 	struct BKT {
-		dafields(struct PAIR)
+		dafields(struct PAIR);
 	} *bkts;
 	size_t len, cap;
 };

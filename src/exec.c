@@ -19,7 +19,7 @@
 #include "vartab.h"
 
 struct strs {
-	dafields(char *)
+	dafields(char *);
 };
 
 struct strarr {

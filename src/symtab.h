@@ -12,7 +12,7 @@ struct symtabpair {
 
 struct symtab {
 	struct symtabbkt {
-		dafields(struct symtabpair)
+		dafields(struct symtabpair);
 	} *bkts;
 	size_t len, cap;
 };

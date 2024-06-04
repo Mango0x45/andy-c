@@ -26,7 +26,7 @@ enum stmtkind : int {
 };
 
 struct list {
-	dafields(struct value)
+	dafields(struct value);
 };
 
 struct concat {
@@ -35,7 +35,7 @@ struct concat {
 
 struct var {
 	struct u8view ident;
-	dafields(struct value)
+	dafields(struct value);
 };
 
 struct value {
@@ -49,11 +49,11 @@ struct value {
 };
 
 struct cmd {
-	dafields(struct value)
+	dafields(struct value);
 };
 
 struct cmpnd {
-	dafields(struct stmt)
+	dafields(struct stmt);
 };
 
 struct unit {
@@ -66,7 +66,7 @@ struct unit {
 };
 
 struct pipe {
-	dafields(struct unit)
+	dafields(struct unit);
 };
 
 struct andor {
@@ -83,7 +83,7 @@ struct stmt {
 };
 
 struct program {
-	dafields(struct stmt)
+	dafields(struct stmt);
 };
 
 struct parser {
