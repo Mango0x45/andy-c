@@ -238,9 +238,13 @@ valtostrs(struct value v, alloc_fn alloc, void *ctx)
 		                alignof(char));
 		memcpyz(sa.p[0], v.w.p, v.w.len);
 		break;
-	case VK_ENV:
-		char *s = alloc(ctx, nullptr, 0, v.w.len, sizeof(char), alignof(char));
-		s = getenv(memcpyz(s, v.w.p, v.w.len));
+	case VK_ENV: {
+		struct u8view sv = {.len = v.w.len + 1};
+		sv.p = alloc(ctx, nullptr, 0, sv.len, sizeof(char), alignof(char));
+		memcpyz((char8_t *)sv.p, v.w.p, v.w.len);
+		sv.p = ucsnorm(&sv.len, sv, alloc, ctx, NF_NFC);
+
+		char *s = getenv(sv.p);
 		if (s != nullptr) {
 			size_t len = strlen(s);
 			sa.n = 1;
@@ -250,6 +254,7 @@ valtostrs(struct value v, alloc_fn alloc, void *ctx)
 			memcpyz(sa.p[0], s, len);
 		}
 		break;
+	}
 	case VK_VAR: {
 		struct u8view sym;
 		sym.p = ucsnorm(&sym.len, v.v.ident, alloc, ctx, NF_NFC);
