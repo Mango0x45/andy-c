@@ -34,6 +34,7 @@ static int exec_cmpnd(struct cmpnd, struct ctx);
 static int exec_cmd(struct cmd, struct ctx);
 
 static struct strarr valtostrs(struct value, alloc_fn, void *);
+static void *memcpyz(void *restrict, const void *restrict, size_t);
 
 struct symtab symboltable;
 
@@ -231,14 +232,14 @@ valtostrs(struct value v, alloc_fn alloc, void *ctx)
 		sa.p = alloc(ctx, nullptr, 0, 1, sizeof(char *), alignof(char *));
 		sa.p[0] = alloc(ctx, nullptr, 0, v.w.len + 1, sizeof(char),
 		                alignof(char));
-		((char *)memcpy(sa.p[0], v.w.p, v.w.len))[v.w.len] = '\0';
+		memcpyz(sa.p[0], v.w.p, v.w.len);
 		break;
 	case VK_VAR:
 		struct u8view sym;
 		sym.p = ucsnorm(&sym.len, v.v.ident, alloc, ctx, NF_NFC);
 
 		struct vartab *vt = symtabget(symboltable, sym);
-		if (vt == nullptr || vt->len == 0) {
+		if (vt != nullptr && vt->len == 0) {
 			sa.n = 0;
 			goto var_out;
 		}
@@ -246,6 +247,9 @@ valtostrs(struct value v, alloc_fn alloc, void *ctx)
 		if (v.v.len != 0) {
 			sa.n = 0;
 			sa.p = nullptr;
+
+			if (vt == nullptr)
+				goto var_out;
 
 			da_foreach (v.v, _v) {
 				struct strarr xs = valtostrs(*_v, alloc, ctx);
@@ -259,10 +263,24 @@ valtostrs(struct value v, alloc_fn alloc, void *ctx)
 					             alignof(char *));
 					sa.p[sa.n] = alloc(ctx, nullptr, 0, v->len + 1,
 					                   sizeof(char), alignof(char));
-					((char *)memcpy(sa.p[sa.n], v->p, v->len))[v->len] = '\0';
+					memcpyz(sa.p[sa.n], v->p, v->len);
 					sa.n++;
 				}
 			}
+		} else if (vt == nullptr) {
+			char *k = alloc(ctx, nullptr, 0, sym.len + 1, sizeof(char),
+			                alignof(char));
+			char *ev = getenv(memcpyz(k, sym.p, sym.len));
+			if (ev == nullptr) {
+				sa.n = 0;
+				goto var_out;
+			}
+			size_t len = strlen(ev);
+			sa.n = 1;
+			sa.p = alloc(ctx, nullptr, 0, 1, sizeof(char *), alignof(char *));
+			sa.p[0] = alloc(ctx, nullptr, 0, len + 1, sizeof(char),
+			                alignof(char));
+			memcpyz(sa.p[0], ev, len);
 		} else {
 			sa.n = vt->len;
 			sa.p = alloc(ctx, nullptr, 0, sa.n, sizeof(char *),
@@ -272,8 +290,7 @@ valtostrs(struct value v, alloc_fn alloc, void *ctx)
 				da_foreach (vt->bkts[i], kv) {
 					sa.p[j] = alloc(ctx, nullptr, 0, kv->v.len + 1,
 					                sizeof(char), alignof(char));
-					((char *)memcpy(sa.p[j], kv->v.p,
-					                kv->v.len))[kv->v.len] = '\0';
+					memcpyz(sa.p[j], kv->v.p, kv->v.len);
 					j++;
 				}
 			}
@@ -320,4 +337,11 @@ var_out:
 	}
 
 	return sa;
+}
+
+void *
+memcpyz(void *restrict dst, const void *restrict src, size_t n)
+{
+	((char *)memcpy(dst, src, n))[n] = 0;
+	return dst;
 }
