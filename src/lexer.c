@@ -233,7 +233,7 @@ lexnext(struct lexer *l)
 					   this, we can just set CH to something we know isn’t a
 					   metacharacter. */
 					ch = 0;
-					n += hl.len;
+					n += hl.len - 1;
 				}
 			} while (w > 0 && risword(ch));
 			if (w > 0) {
