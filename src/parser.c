@@ -278,12 +278,18 @@ parse_value(struct parser p)
 		v.w = parse_word(p);
 		break;
 	case LTK_VAR:
+	case LTK_VARL:
 	case LTK_VAR_O:
-		v.kind = VK_VAR;
 		v.v.ident = t.sv;
-		VSHFT(&v.v.ident, 1);
+		if (t.kind == LTK_VARL) {
+			v.kind = VK_VARL;
+			VSHFT(&v.v.ident, 2);
+		} else {
+			v.kind = VK_VAR;
+			VSHFT(&v.v.ident, 1);
+		}
 		EAT;
-		if (t.kind == LTK_VAR)
+		if (t.kind == LTK_VAR || t.kind == LTK_VARL)
 			break;
 
 		struct arena_ctx ctx = {.a = p.a};
@@ -416,6 +422,7 @@ tokisval(enum lextokkind k)
 	switch (k) {
 	case LTK_PAR_O:
 	case LTK_VAR:
+	case LTK_VARL:
 	case LTK_VAR_O:
 	case LTK_WORD:
 		return true;

@@ -14,9 +14,10 @@ enum lextokkind {
 	LTK_PAR_C, /* Closing parenthesis */
 	LTK_PAR_O, /* Opening parenthesis */
 	LTK_PIPE,  /* Pipe */
+	LTK_VAR,   /* Variable */
+	LTK_VARL,  /* Variable length */
 	LTK_VAR_C, /* Closing bracket of variable */
 	LTK_VAR_O, /* Variable with opening bracket */
-	LTK_VAR,   /* Variable */
 	LTK_WORD,  /* Word */
 
 	/* All enumeration values after this point represent something that could be

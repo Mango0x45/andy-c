@@ -11,6 +11,7 @@ enum valkind : int {
 	VK_CONCAT,
 	VK_LIST,
 	VK_VAR,
+	VK_VARL,
 	VK_WORD,
 };
 

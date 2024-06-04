@@ -1,6 +1,7 @@
 #include <sys/wait.h>
 
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -238,7 +239,7 @@ valtostrs(struct value v, alloc_fn alloc, void *ctx)
 		                alignof(char));
 		memcpyz(sa.p[0], v.w.p, v.w.len);
 		break;
-	case VK_VAR:
+	case VK_VAR: {
 		struct u8view sym;
 		sym.p = ucsnorm(&sym.len, v.v.ident, alloc, ctx, NF_NFC);
 
@@ -303,6 +304,24 @@ valtostrs(struct value v, alloc_fn alloc, void *ctx)
 var_out:
 		alloc(ctx, (void *)sym.p, sym.len, 0, sizeof(char8_t),
 		      alignof(char8_t));
+		break;
+	}
+	case VK_VARL:
+		sa.n = 1;
+		sa.p = alloc(ctx, nullptr, 0, 1, sizeof(char *), alignof(char *));
+
+		struct u8view sym;
+		sym.p = ucsnorm(&sym.len, v.v.ident, alloc, ctx, NF_NFC);
+
+		struct vartab *vt = symtabget(symboltable, sym);
+		if (vt == nullptr || vt->len == 0)
+			sa.p[0] = "0";
+		else {
+			constexpr size_t SIZE_STR_MAX = 21;
+			sa.p[0] = alloc(ctx, nullptr, 0, SIZE_STR_MAX, sizeof(char),
+			                alignof(char));
+			snprintf(sa.p[0], SIZE_STR_MAX, "%zu", vt->len);
+		}
 		break;
 	case VK_LIST:
 		sa.n = 0;

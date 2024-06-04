@@ -103,7 +103,9 @@ lexnext(struct lexer *l)
 
 			rune ch;
 			for (int w; (w = ucsnext(&ch, &l->sv)) != 0; tok.sv.len += w) {
-				if (!risvar(ch)) {
+				if (tok.sv.len == 1 && ch == '#')
+					tok.kind = LTK_VARL;
+				else if (!risvar(ch)) {
 					VSHFT(&l->sv, -w);
 					break;
 				}
