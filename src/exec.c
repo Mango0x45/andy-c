@@ -49,8 +49,9 @@ static int execpipe(struct pipe, struct ctx);
 static int execunit(struct unit, struct ctx, int);
 static int execcmpnd(struct cmpnd, struct ctx);
 static int execcmd(struct cmd, struct ctx, int);
-static void *thrdcb(void *);
 
+static void sendfds(int, int *);
+static void *thrdcb(void *);
 static struct strarr valtostrs(struct value, alloc_fn, void *);
 static void *memcpyz(void *restrict, const void *restrict, size_t);
 
@@ -220,6 +221,8 @@ execunit(struct unit u, struct ctx ctx, int mqd)
 		break;
 	case UK_CMPND:
 		ret = execcmpnd(u.cp, ctx);
+		if (mqd != -1)
+			sendfds(mqd, ctx.fds);
 		break;
 	}
 	if (!u.neg)
@@ -264,13 +267,8 @@ execcmd(struct cmd c, struct ctx ctx, int mqd)
 	builtin_fn bltn = lookup_builtin(argv.buf[0]);
 	if (bltn != nullptr) {
 		ret = bltn(argv.buf, argv.len, ctx);
-		if (mqd != -1) {
-			struct mqmsg msg = {.mtype = 1};
-			for (int i = 0; i < FDCNT; i++)
-				msg.fds[i] = ctx.fds[i];
-			if (msgsnd(mqd, &msg, sizeof(msg.fds), 0) == -1)
-				err("msgsnd:");
-		}
+		if (mqd != -1)
+			sendfds(mqd, ctx.fds);
 		goto out;
 	}
 
@@ -292,13 +290,8 @@ execcmd(struct cmd c, struct ctx ctx, int mqd)
 		err("exec: %s:", argv.buf[0]);
 	}
 
-	if (mqd != -1) {
-		struct mqmsg msg = {.mtype = 1};
-		for (int i = 0; i < FDCNT; i++)
-			msg.fds[i] = ctx.fds[i];
-		if (msgsnd(mqd, &msg, sizeof(msg.fds), 0) == -1)
-			err("msgsnd:");
-	}
+	if (mqd != -1)
+		sendfds(mqd, ctx.fds);
 
 	int ws;
 	if (waitpid(pid, &ws, 0) == -1)
@@ -487,6 +480,16 @@ var_out:
 	}
 
 	return sa;
+}
+
+void
+sendfds(int mqd, int *fds)
+{
+	struct mqmsg msg = {.mtype = 1};
+	for (int i = 0; i < FDCNT; i++)
+		msg.fds[i] = fds[i];
+	if (msgsnd(mqd, &msg, sizeof(msg.fds), 0) == -1)
+		err("msgsnd:");
 }
 
 void *
