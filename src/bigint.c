@@ -5,13 +5,18 @@ isbigint(struct u8view sv)
 {
 	if (sv.len == 0)
 		return false;
+
+	bool neg = false;
 	if (sv.p[0] == '-') {
 		if (sv.len == 1)
 			return false;
 		VSHFT(&sv, 1);
+		neg = true;
 	}
-	if (sv.p[0] == '0' && sv.len > 1)
+
+	if (sv.p[0] == '0' && (neg || sv.len > 1))
 		return false;
+
 	for (size_t i = 0; i < sv.len; i++) {
 		if (sv.p[i] < '0' || sv.p[i] > '9')
 			return false;
