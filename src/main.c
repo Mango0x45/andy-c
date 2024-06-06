@@ -102,7 +102,10 @@ rloop(void)
 			});
 			if (p == nullptr)
 				warn("failed to parse");
-			struct ctx ctx = {.a = &a};
+			struct ctx ctx = {
+				.fds = {0, 1, 2},
+				.a = &a,
+			};
 			ret = execprog(*p, ctx);
 		}
 		arena_free(&a);
@@ -153,7 +156,10 @@ readfile(FILE *stream)
 	});
 	if (p == nullptr)
 		warn("failed to parse");
-	struct ctx ctx = {.a = &a};
+	struct ctx ctx = {
+		.fds = {0, 1, 2},
+		.a = &a,
+	};
 	shellinit();
 	int ret = execprog(*p, ctx);
 

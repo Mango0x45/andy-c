@@ -1,5 +1,9 @@
+#include <sys/msg.h>
 #include <sys/wait.h>
 
+#include <errno.h>
+#include <fcntl.h>
+#include <pthread.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,6 +23,8 @@
 #include "symtab.h"
 #include "vartab.h"
 
+typedef int mqd_T;
+
 struct strs {
 	dafields(char *);
 };
@@ -28,12 +34,24 @@ struct strarr {
 	size_t n;
 };
 
+struct thrd_pload {
+	mqd_T mqd;
+	struct unit u;
+	struct ctx ctx;
+};
+
+struct mqmsg {
+	long mtype;
+	int fds[FDCNT];
+};
+
 static int execstmt(struct stmt, struct ctx);
 static int execandor(struct andor, struct ctx);
 static int execpipe(struct pipe, struct ctx);
-static int execunit(struct unit, struct ctx);
+static int execunit(struct unit, struct ctx, mqd_T);
 static int execcmpnd(struct cmpnd, struct ctx);
-static int execcmd(struct cmd, struct ctx);
+static int execcmd(struct cmd, struct ctx, mqd_T);
+static void *thrdcb(void *);
 
 static struct strarr valtostrs(struct value, alloc_fn, void *);
 static void *memcpyz(void *restrict, const void *restrict, size_t);
@@ -113,10 +131,11 @@ execpipe(struct pipe p, struct ctx ctx)
 	ASSUME(p.len > 0);
 
 	if (p.len == 1)
-		return execunit(p.buf[0], ctx);
+		return execunit(p.buf[0], ctx, -1);
 
-	pid_t *pids = arena_new(ctx.a, pid_t, p.len);
-	if (pids == nullptr)
+	pthread_t *thrds = arena_new(ctx.a, pthread_t, p.len);
+	struct thrd_pload *ploads = arena_new(ctx.a, struct thrd_pload, p.len);
+	if (thrds == nullptr || ploads == nullptr)
 		err("arena_new:");
 
 	int fds[2];
@@ -125,60 +144,68 @@ execpipe(struct pipe p, struct ctx ctx)
 		W,
 	};
 
-	for (size_t i = 0; i < p.len; i++) {
-		int nfds[3] = {
-			STDIN_FILENO,
-			STDOUT_FILENO,
-			STDERR_FILENO,
-		};
+	mqd_T mqd = msgget(IPC_PRIVATE, 0666);
+	if (mqd == (mqd_T)-1)
+		err("msgget:");
 
+	for (size_t i = 0; i < p.len; i++) {
+		struct ctx nctx = ctx;
 		if (i > 0)
-			nfds[STDIN_FILENO] = fds[R];
+			nctx.fds[STDIN_FILENO] = fds[R];
 		if (i < p.len - 1) {
+#if __linux__
+			if (pipe2(fds, O_CLOEXEC) == -1)
+				err("pipe:");
+#else
 			if (pipe(fds) == -1)
 				err("pipe:");
-			nfds[STDOUT_FILENO] = fds[W];
-		}
 
-		pid_t pid = fork();
-		if (pid == -1)
-			err("fork:");
-		if (pid == 0) {
-			for (int i = 0; i < (int)lengthof(nfds); i++) {
-				if (nfds[i] == i)
-					continue;
-				close(i);
-				if (dup2(nfds[i], i) == -1)
-					err("dup2");
-				close(nfds[i]);
+			for (int i = 0; i < (int)lengthof(fds); i++) {
+				int flags = fcntl(fds[i], F_GETFD);
+				if (flags == -1)
+					err("fcntl: F_GETFD");
+				if (fcntl(fds[i], F_SETFD, flags | FD_CLOEXEC) == -1)
+					err("fcntl: F_SETFD");
 			}
-			exit(execunit(p.buf[i], ctx));
+#endif
+			nctx.fds[STDOUT_FILENO] = fds[W];
 		}
 
-		pids[i] = pid;
-		if (i < p.len - 1)
-			close(nfds[STDOUT_FILENO]);
-		if (i > 0)
-			close(nfds[STDIN_FILENO]);
+		ploads[i].u = p.buf[i];
+		ploads[i].ctx = nctx;
+		ploads[i].mqd = mqd;
+		errno = pthread_create(thrds + i, nullptr, thrdcb, ploads + i);
+		if (errno != 0)
+			err("pthread_create:");
 	}
 
-	int ret;
 	for (size_t i = 0; i < p.len; i++) {
-		int ws;
-		if (waitpid(pids[i], &ws, 0) == -1)
-			err("waitpid:");
-		ret = WIFEXITED(ws) ? WEXITSTATUS(ws) : UINT8_MAX + 1;
+		struct mqmsg msg;
+		if (msgrcv(mqd, &msg, sizeof(msg.fds), 0, 0) == -1)
+			err("msgrcv:");
+		for (int j = 0; j < FDCNT; j++) {
+			if (msg.fds[j] != ctx.fds[j])
+				close(msg.fds[j]);
+		}
 	}
-	return ret;
+
+	msgctl(mqd, IPC_RMID, nullptr);
+
+	uintptr_t ret = 0;
+	for (size_t i = 0; i < p.len; i++) {
+		if ((errno = pthread_join(thrds[i], (void **)&ret)) != 0)
+			err("pthread_join:");
+	}
+	return (int)ret;
 }
 
 int
-execunit(struct unit u, struct ctx ctx)
+execunit(struct unit u, struct ctx ctx, mqd_T mqd)
 {
 	int ret;
 	switch (u.kind) {
 	case UK_CMD:
-		ret = execcmd(u.c, ctx);
+		ret = execcmd(u.c, ctx, mqd);
 		break;
 	case UK_CMPND:
 		ret = execcmpnd(u.cp, ctx);
@@ -201,11 +228,11 @@ execcmpnd(struct cmpnd cp, struct ctx ctx)
 }
 
 int
-execcmd(struct cmd c, struct ctx)
+execcmd(struct cmd c, struct ctx ctx, mqd_T mqd)
 {
 	int ret;
 	arena a = mkarena(0);
-	struct arena_ctx a_ctx = {.a = &a};
+	struct arena_ctx a_ctx = {.a = ctx.a = &a};
 	struct strs argv = {
 		.alloc = alloc_arena,
 		.ctx = &a_ctx,
@@ -225,28 +252,59 @@ execcmd(struct cmd c, struct ctx)
 
 	builtin_fn bltn = lookup_builtin(argv.buf[0]);
 	if (bltn != nullptr) {
-		ret = bltn(argv.buf, argv.len);
+		ret = bltn(argv.buf, argv.len, ctx);
+		if (mqd != -1) {
+			struct mqmsg msg = {.mtype = 1};
+			for (int i = 0; i < FDCNT; i++)
+				msg.fds[i] = ctx.fds[i];
+			if (msgsnd(mqd, &msg, sizeof(msg.fds), 0) == -1)
+				err("msgsnd:");
+		}
 		goto out;
 	}
 
 	pid_t pid = fork();
 	if (pid == -1)
 		err("fork:");
-	if (pid != 0) {
-		int ws;
-		if (waitpid(pid, &ws, 0) == -1)
-			err("waitpid:");
-		ret = WIFEXITED(ws) ? WEXITSTATUS(ws) : UINT8_MAX + 1;
-		goto out;
+
+	if (pid == 0) {
+		for (int i = 0; i < FDCNT; i++) {
+			if (ctx.fds[i] != i) {
+				close(i);
+				if (dup2(ctx.fds[i], i) == -1)
+					err("dup2:");
+			}
+		}
+
+		DAPUSH(&argv, nullptr);
+		execvp(argv.buf[0], argv.buf);
+		err("exec: %s:", argv.buf[0]);
 	}
 
-	DAPUSH(&argv, nullptr);
-	execvp(argv.buf[0], argv.buf);
-	err("exec: %s:", argv.buf[0]);
+	if (mqd != -1) {
+		struct mqmsg msg = {.mtype = 1};
+		for (int i = 0; i < FDCNT; i++)
+			msg.fds[i] = ctx.fds[i];
+		if (msgsnd(mqd, &msg, sizeof(msg.fds), 0) == -1)
+			err("msgsnd:");
+	}
+
+	int ws;
+	if (waitpid(pid, &ws, 0) == -1)
+		err("waitpid:");
+	ret = WIFEXITED(ws) ? WEXITSTATUS(ws) : UINT8_MAX + 1;
 
 out:
 	arena_free(&a);
 	return ret;
+}
+
+void *
+thrdcb(void *_pload)
+{
+	struct thrd_pload *pload = _pload;
+	uintptr_t ret = execunit(pload->u, pload->ctx, pload->mqd);
+	return (void *)ret;
 }
 
 struct strarr

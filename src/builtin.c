@@ -17,26 +17,34 @@
 #include "symtab.h"
 #include "vartab.h"
 
+#define xwarn(fmt, ...) xwarn(ctx, (fmt)__VA_OPT__(, ) __VA_ARGS__)
+
 static int
-xwarn(const char *fmt, ...)
+(xwarn)(struct ctx ctx, const char *fmt, ...)
 {
 	int save = errno;
 	va_list ap;
+
+	FILE *fp = fdopen(ctx.fds[STDERR_FILENO], "w");
+	if (fp == nullptr)
+		return EXIT_FAILURE;
+
 	va_start(ap, fmt);
-	flockfile(stderr);
+	flockfile(fp);
 
-	vfprintf(stderr, fmt, ap);
+	vfprintf(fp, fmt, ap);
 	if (fmt[strlen(fmt) - 1] == ':')
-		fprintf(stderr, " %s", strerror(save));
-	fputc('\n', stderr);
+		fprintf(fp, " %s", strerror(save));
+	fputc('\n', fp);
 
-	funlockfile(stderr);
+	fflush(fp);
+	funlockfile(fp);
 	va_end(ap);
 	return EXIT_FAILURE;
 }
 
 int
-builtin_cd(char **argv, size_t n)
+builtin_cd(char **argv, size_t n, struct ctx ctx)
 {
 	if (n == 1) {
 		char *h = getenv("HOME");
@@ -49,31 +57,37 @@ builtin_cd(char **argv, size_t n)
 }
 
 int
-builtin_echo(char **argv, size_t n)
+builtin_echo(char **argv, size_t n, struct ctx ctx)
 {
+	FILE *fp = fdopen(ctx.fds[STDOUT_FILENO], "w");
+	if (fp == nullptr)
+		return xwarn("echo:");
+
 	for (size_t i = 1; i < n; i++) {
-		if (fputs(argv[i], stdout) == EOF)
+		if (fputs(argv[i], fp) == EOF)
 			return xwarn("echo:");
 		if (i < n - 1) {
-			if (putchar(' ') == EOF)
+			if (fputc(' ', fp) == EOF)
 				return xwarn("echo:");
 		}
 	}
-	if (putchar('\n') == EOF)
+	if (fputc('\n', fp) == EOF)
 		return xwarn("echo:");
 
+	fflush(fp);
 	return EXIT_SUCCESS;
 }
 
 int
-builtin_false(char **, size_t)
+builtin_false(char **, size_t, struct ctx)
 {
 	return EXIT_FAILURE;
 }
 
 int
-builtin_get(char **argv, size_t argc)
+builtin_get(char **argv, size_t argc, struct ctx ctx)
 {
+	int rv = EXIT_SUCCESS;
 	bool eflag, kflag, Nflag, vflag;
 	struct optparser cli = mkoptparser(argv);
 	static const struct cli_option opts[] = {
@@ -125,36 +139,41 @@ usage:
 	if (!Nflag)
 		sym.p = ucsnorm(&sym.len, sym, alloc_heap, nullptr, NF_NFC);
 
+	FILE *outf = fdopen(ctx.fds[STDOUT_FILENO], "w");
+	if (outf == nullptr) {
+		rv = xwarn("fdopen:");
+		goto out;
+	}
+
 	if (eflag) {
 		char *ev = getenv(sym.p);
 		if (ev != nullptr)
-			puts(ev);
+			fprintf(outf, "%s\n", ev);
 		goto out;
 	}
 
 	struct vartab *vt = symtabget(symboltable, sym);
-
 	if (vt == nullptr)
 		goto out;
 
 	if (kflag) {
 		da_foreach (vt->numeric, k)
-			printf("%.*s\n", SV_PRI_ARGS(*k));
+			fprintf(outf, "%.*s\n", SV_PRI_ARGS(*k));
 		for (size_t i = 0; i < vt->cap; i++) {
 			da_foreach (vt->bkts[i], kv) {
 				if (!isbigint(kv->k))
-					printf("%.*s\n", SV_PRI_ARGS(kv->k));
+					fprintf(outf, "%.*s\n", SV_PRI_ARGS(kv->k));
 			}
 		}
 	} else if (vflag) {
 		da_foreach (vt->numeric, k) {
 			struct u8view *v = vartabget(*vt, *k);
-			printf("%.*s\n", SV_PRI_ARGS(*v));
+			fprintf(outf, "%.*s\n", SV_PRI_ARGS(*v));
 		}
 		for (size_t i = 0; i < vt->cap; i++) {
 			da_foreach (vt->bkts[i], kv) {
 				if (!isbigint(kv->k))
-					printf("%.*s\n", SV_PRI_ARGS(kv->v));
+					fprintf(outf, "%.*s\n", SV_PRI_ARGS(kv->v));
 			}
 		}
 	} else {
@@ -162,18 +181,20 @@ usage:
 			struct u8view k = {argv[i], strlen(argv[i])};
 			struct u8view *v = vartabget(*vt, k);
 			if (v != nullptr)
-				printf("%.*s\n", SV_PRI_ARGS(*v));
+				fprintf(outf, "%.*s\n", SV_PRI_ARGS(*v));
 		}
 	}
 
 out:
+	if (outf != nullptr)
+		fflush(outf);
 	if (!Nflag)
 		free((void *)sym.p);
-	return EXIT_SUCCESS;
+	return rv;
 }
 
 int
-builtin_set(char **argv, size_t argc)
+builtin_set(char **argv, size_t argc, struct ctx ctx)
 {
 	if (argc < 2) {
 usage:
@@ -181,6 +202,7 @@ usage:
 		             "       set [-N] [-e | -k key] symbol [value]");
 	}
 
+	int rv = EXIT_SUCCESS;
 	bool eflag, Nflag;
 	struct u8view kflag = {};
 	struct optparser cli = mkoptparser(argv);
@@ -223,16 +245,19 @@ usage:
 
 	if (eflag) {
 		if (argc < 2) {
-			if (unsetenv(sym.p) == -1)
-				warn("unsetenv: %s:", sym.p);
+			if (unsetenv(sym.p) == -1) {
+				rv = xwarn("unsetenv: %s:", sym.p);
+				goto out;
+			}
 		} else {
-			if (setenv(sym.p, argv[1], true) == -1)
-				warn("setenv: %s:", sym.p);
+			if (setenv(sym.p, argv[1], true) == -1) {
+				rv = xwarn("setenv: %s:", sym.p);
+				goto out;
+			}
 		}
 	}
 
 	struct vartab *vt = symtabget(symboltable, sym);
-
 	if (vt == nullptr) {
 		if (Nflag) {
 			sym.p = memcpy(bufalloc(nullptr, sym.len, sizeof(char8_t)), sym.p,
@@ -276,13 +301,14 @@ usage:
 		}
 	}
 
+out:
 	if (do_free)
 		free((void *)sym.p);
-	return EXIT_SUCCESS;
+	return rv;
 }
 
 int
-builtin_true(char **, size_t)
+builtin_true(char **, size_t, struct ctx)
 {
 	return EXIT_SUCCESS;
 }

@@ -16,7 +16,8 @@
 #define TARGET "andy"
 
 #define CFLAGS_ALL                                                             \
-	WARNINGS, "-pipe", "-std=c23", "-Ivendor/mlib/include" GLIB_EXTRAS
+	WARNINGS, "-lpthread", "-pipe", "-std=c23",                                \
+		"-Ivendor/mlib/include" GLIB_EXTRAS
 #define CFLAGS_DBG "-g3", "-ggdb3", "-O0", "-fsanitize=address,undefined"
 #define CFLAGS_RLS "-O3", "-flto", "-DNDEBUG" NOT_APPLE_EXTRAS
 

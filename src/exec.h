@@ -6,7 +6,10 @@
 #include "parser.h"
 #include "symtab.h"
 
+constexpr int FDCNT = 3;
+
 struct ctx {
+	int fds[FDCNT];
 	arena *a;
 };
 
