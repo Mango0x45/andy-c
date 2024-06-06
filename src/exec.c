@@ -23,8 +23,6 @@
 #include "symtab.h"
 #include "vartab.h"
 
-typedef int mqd_T;
-
 struct strs {
 	dafields(char *);
 };
@@ -35,7 +33,7 @@ struct strarr {
 };
 
 struct thrd_pload {
-	mqd_T mqd;
+	int mqd;
 	struct unit u;
 	struct ctx ctx;
 };
@@ -48,9 +46,9 @@ struct mqmsg {
 static int execstmt(struct stmt, struct ctx);
 static int execandor(struct andor, struct ctx);
 static int execpipe(struct pipe, struct ctx);
-static int execunit(struct unit, struct ctx, mqd_T);
+static int execunit(struct unit, struct ctx, int);
 static int execcmpnd(struct cmpnd, struct ctx);
-static int execcmd(struct cmd, struct ctx, mqd_T);
+static int execcmd(struct cmd, struct ctx, int);
 static void *thrdcb(void *);
 
 static struct strarr valtostrs(struct value, alloc_fn, void *);
@@ -144,8 +142,8 @@ execpipe(struct pipe p, struct ctx ctx)
 		W,
 	};
 
-	mqd_T mqd = msgget(IPC_PRIVATE, 0666);
-	if (mqd == (mqd_T)-1)
+	int mqd = msgget(IPC_PRIVATE, 0666);
+	if (mqd == -1)
 		err("msgget:");
 
 	for (size_t i = 0; i < p.len; i++) {
@@ -200,7 +198,7 @@ execpipe(struct pipe p, struct ctx ctx)
 }
 
 int
-execunit(struct unit u, struct ctx ctx, mqd_T mqd)
+execunit(struct unit u, struct ctx ctx, int mqd)
 {
 	int ret;
 	switch (u.kind) {
@@ -228,7 +226,7 @@ execcmpnd(struct cmpnd cp, struct ctx ctx)
 }
 
 int
-execcmd(struct cmd c, struct ctx ctx, mqd_T mqd)
+execcmd(struct cmd c, struct ctx ctx, int mqd)
 {
 	int ret;
 	arena a = mkarena(0);
