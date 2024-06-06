@@ -142,6 +142,19 @@ execpipe(struct pipe p, struct ctx ctx)
 		W,
 	};
 
+	/* In a shell like the one defined by POSIX, we would just fork for each
+	   unit in the pipeline and call execunit() in the child.  In Andy however
+	   we want builtins to be able to modify the state of the parent shell even
+	   when used in a pipeline, so we cannot mindlessly fork each pipeline unit.
+
+	   One advantage of forking that we don’t have when we use threads is that
+	   we need to take more care when closing file descriptors (we can’t just
+	   dup2() as liberally).  The solution employed here is to call execunit()
+	   with a message-queue descriptor.  After execution of the unit, the file
+	   descriptors that the unit used are sent to the main thread and compared
+	   with the file descriptors of the parent pipe’s context.  File descriptors
+	   that aren’t equal are closed. */
+
 	int mqd = msgget(IPC_PRIVATE, 0666);
 	if (mqd == -1)
 		err("msgget:");
