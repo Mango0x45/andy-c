@@ -88,6 +88,15 @@ builtin_echo(char **argv, size_t n, struct ctx ctx)
 }
 
 int
+builtin_exec(char **argv, size_t argc, struct ctx ctx)
+{
+	if (argc < 2)
+		return xwarn("Usage: exec command [arguments ...]");
+	execvp(argv[1], argv + 1);
+	return xwarn("exec: %s:", argv[1]);
+}
+
+int
 builtin_false(char **, size_t, struct ctx)
 {
 	return EXIT_FAILURE;

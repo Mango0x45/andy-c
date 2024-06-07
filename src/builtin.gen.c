@@ -1,6 +1,6 @@
 /* ANSI-C code produced by gperf version 3.1 */
 /* Command-line: gperf --output-file src/builtin.gen.c src/builtin.gperf  */
-/* Computed positions: -k'1' */
+/* Computed positions: -k'1-2' */
 
 #if !((' ' == 32) && ('!' == 33) && ('"' == 34) && ('#' == 35) \
       && ('%' == 37) && ('&' == 38) && ('\'' == 39) && ('(' == 40) \
@@ -35,7 +35,7 @@
 #line 13 "src/builtin.gperf"
 struct lookup { char *name; builtin *fn; };
 #include <string.h>
-/* maximum key range = 9, duplicates = 0 */
+/* maximum key range = 11, duplicates = 0 */
 
 #ifdef __GNUC__
 __inline
@@ -49,34 +49,34 @@ hash (register const char *str, register size_t len)
 {
   static const unsigned char asso_values[] =
     {
-      11, 11, 11, 11, 11, 11, 11, 11, 11, 11,
-      11, 11, 11, 11, 11, 11, 11, 11, 11, 11,
-      11, 11, 11, 11, 11, 11, 11, 11, 11, 11,
-      11, 11, 11, 11, 11, 11, 11, 11, 11, 11,
-      11, 11, 11, 11, 11, 11, 11, 11, 11, 11,
-      11, 11, 11, 11, 11, 11, 11, 11, 11, 11,
-      11, 11, 11, 11, 11, 11, 11, 11, 11, 11,
-      11, 11, 11, 11, 11, 11, 11, 11, 11, 11,
-      11, 11, 11, 11, 11, 11, 11, 11, 11, 11,
-      11, 11, 11, 11, 11, 11, 11, 11, 11,  0,
-      11,  5,  5,  5, 11, 11, 11, 11, 11, 11,
-      11, 11, 11, 11, 11,  0,  0,  0, 11, 11,
-      11, 11, 11, 11, 11, 11, 11, 11, 11, 11,
-      11, 11, 11, 11, 11, 11, 11, 11, 11, 11,
-      11, 11, 11, 11, 11, 11, 11, 11, 11, 11,
-      11, 11, 11, 11, 11, 11, 11, 11, 11, 11,
-      11, 11, 11, 11, 11, 11, 11, 11, 11, 11,
-      11, 11, 11, 11, 11, 11, 11, 11, 11, 11,
-      11, 11, 11, 11, 11, 11, 11, 11, 11, 11,
-      11, 11, 11, 11, 11, 11, 11, 11, 11, 11,
-      11, 11, 11, 11, 11, 11, 11, 11, 11, 11,
-      11, 11, 11, 11, 11, 11, 11, 11, 11, 11,
-      11, 11, 11, 11, 11, 11, 11, 11, 11, 11,
-      11, 11, 11, 11, 11, 11, 11, 11, 11, 11,
-      11, 11, 11, 11, 11, 11, 11, 11, 11, 11,
-      11, 11, 11, 11, 11, 11
+      15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
+      15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
+      15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
+      15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
+      15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
+      15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
+      15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
+      15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
+      15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
+      15, 15, 15, 15, 15, 15, 15,  5, 15,  5,
+       0,  5,  0,  5, 15, 15, 15, 15, 15,  0,
+      15, 15, 15, 15,  0,  0,  0,  0, 15, 15,
+       0, 15, 15, 15, 15, 15, 15, 15, 15, 15,
+      15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
+      15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
+      15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
+      15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
+      15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
+      15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
+      15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
+      15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
+      15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
+      15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
+      15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
+      15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
+      15, 15, 15, 15, 15, 15
     };
-  return len + asso_values[(unsigned char)str[0]];
+  return len + asso_values[(unsigned char)str[1]] + asso_values[(unsigned char)str[0]];
 }
 
 const struct lookup *
@@ -84,35 +84,39 @@ in_builtin_word_set (register const char *str, register size_t len)
 {
   enum
     {
-      TOTAL_KEYWORDS = 7,
+      TOTAL_KEYWORDS = 8,
       MIN_WORD_LENGTH = 2,
       MAX_WORD_LENGTH = 5,
-      MIN_HASH_VALUE = 2,
-      MAX_HASH_VALUE = 10
+      MIN_HASH_VALUE = 4,
+      MAX_HASH_VALUE = 14
     };
 
   static const unsigned char lengthtable[] =
     {
-       0,  0,  2,  3,  4,  5,  0,  0,  3,  4,  5
+       0,  0,  0,  0,  4,  5,  0,  2,  3,  4,  5,  0,  0,  3,
+       4
     };
   static const struct lookup wordlist[] =
     {
-      {""}, {""},
+      {""}, {""}, {""}, {""},
+#line 21 "src/builtin.gperf"
+      {"true",  builtin_true},
+#line 22 "src/builtin.gperf"
+      {"umask", builtin_umask},
+      {""},
 #line 15 "src/builtin.gperf"
       {"cd",    builtin_cd},
-#line 19 "src/builtin.gperf"
-      {"set",   builtin_set},
 #line 20 "src/builtin.gperf"
-      {"true",  builtin_true},
-#line 21 "src/builtin.gperf"
-      {"umask", builtin_umask},
-      {""}, {""},
+      {"set",   builtin_set},
+#line 17 "src/builtin.gperf"
+      {"exec",  builtin_exec},
 #line 18 "src/builtin.gperf"
+      {"false", builtin_false},
+      {""}, {""},
+#line 19 "src/builtin.gperf"
       {"get",   builtin_get},
 #line 16 "src/builtin.gperf"
-      {"echo",  builtin_echo},
-#line 17 "src/builtin.gperf"
-      {"false", builtin_false}
+      {"echo",  builtin_echo}
     };
 
   if (len <= MAX_WORD_LENGTH && len >= MIN_WORD_LENGTH)
@@ -130,7 +134,7 @@ in_builtin_word_set (register const char *str, register size_t len)
     }
   return 0;
 }
-#line 22 "src/builtin.gperf"
+#line 23 "src/builtin.gperf"
 
 builtin *
 lookup_builtin(const char *s)
