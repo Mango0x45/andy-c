@@ -16,8 +16,7 @@
 #define TARGET "andy"
 
 #define CFLAGS_ALL                                                             \
-	WARNINGS, "-lpthread", "-pipe", "-std=c23",                                \
-		"-Ivendor/mlib/include" GLIB_EXTRAS
+	"-lpthread", "-pipe", "-std=c23", "-Ivendor/mlib/include" GLIB_EXTRAS
 #define CFLAGS_DBG "-g3", "-ggdb3", "-O0", "-fsanitize=address,undefined"
 #define CFLAGS_RLS "-O3", "-flto", "-DNDEBUG" NOT_APPLE_EXTRAS
 
@@ -50,7 +49,8 @@
 
 static int globerr(const char *, int);
 static void usage(void);
-static void work(void *);
+static void work_c(void *);
+static void work_gperf(void *);
 
 static bool dflag;
 static char *argv0;
@@ -134,24 +134,20 @@ main(int argc, char **argv)
 			procs = 8;
 		}
 
-		/* Build the builtins hash table */
-		if (flagset('f') || foutdated("src/builtin.gen.c", "src/builtin.gperf"))
-		{
-			cmdadd(&c, "gperf", "src/builtin.gperf",
-			       "--output-file=src/builtin.gen.c");
-			if (flagset('p'))
-				cmdput(c);
-			else
-				fprintf(stderr, "GPERF\t%s\n", "src/builtin.gen.c");
-			CMDRC(c);
-		}
-
-		if ((err = glob("src/*.c", 0, globerr, &g)) != 0 && err != GLOB_NOMATCH)
+		if ((err = glob("src/*.gperf", 0, globerr, &g)) != 0)
 			die("glob");
 
 		tpinit(&tp, procs);
 		for (size_t i = 0; i < g.gl_pathc; i++)
-			tpenq(&tp, work, g.gl_pathv[i], nullptr);
+			tpenq(&tp, work_gperf, g.gl_pathv[i], nullptr);
+		tpwait(&tp);
+		globfree(&g);
+
+		if ((err = glob("src/*.c", 0, globerr, &g)) != 0)
+			die("glob");
+
+		for (size_t i = 0; i < g.gl_pathc; i++)
+			tpenq(&tp, work_c, g.gl_pathv[i], nullptr);
 		tpwait(&tp);
 		tpfree(&tp);
 
@@ -200,12 +196,13 @@ globerr(const char *s, int e)
 }
 
 void
-work(void *p)
+work_c(void *p)
 {
 	char *dst, *src = p;
 	cmd_t c = {};
 	struct strv sv = {};
 
+	bool gperf = strstr(src, ".gen.c") != nullptr;
 	if (!(dst = strdup(src)))
 		die("strdup");
 	dst[strlen(dst) - 1] = 'o';
@@ -217,6 +214,10 @@ work(void *p)
 		else
 			env_or_default(&sv, "CFLAGS", CFLAGS_DBG);
 		cmdaddv(&c, sv.buf, sv.len);
+		if (gperf)
+			cmdadd(&c, "-w");
+		else
+			cmdadd(&c, WARNINGS);
 		cmdadd(&c, CFLAGS_ALL, "-o", dst, "-c", src);
 		if (flagset('p'))
 			cmdput(c);
@@ -227,4 +228,27 @@ work(void *p)
 
 	strvfree(&sv);
 	free(dst);
+}
+
+void
+work_gperf(void *p)
+{
+	char *dst, *src = p;
+	cmd_t c = {};
+
+	if (!(dst = strdup(src)))
+		die("strdup");
+
+	/* Just our luck! ‘.gen.c’ and ‘.gperf’ have the same length */
+	memcpy(strrchr(dst, '.'), ".gen.c", sizeof(".gperf") - 1);
+
+	/* Build the builtins hash table */
+	if (flagset('f') || foutdated(dst, src)) {
+		cmdadd(&c, "gperf", src, "--output-file", dst);
+		if (flagset('p'))
+			cmdput(c);
+		else
+			fprintf(stderr, "GPERF\t%s\n", dst);
+		CMDRC(c);
+	}
 }

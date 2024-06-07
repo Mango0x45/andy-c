@@ -1,3 +1,5 @@
+%compare-lengths
+%define lookup-function-name in_builtin_word_set
 %enum
 %includes
 %language=ANSI-C
@@ -6,8 +8,6 @@
 
 %{
 #include "builtin.h"
-
-#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 %}
 
 struct lookup { char *name; builtin_fn fn; };
@@ -22,6 +22,6 @@ true,  builtin_true
 builtin_fn
 lookup_builtin(const char *s)
 {
-	const struct lookup *l = in_word_set(s, strlen(s));
+	const struct lookup *l = in_builtin_word_set(s, strlen(s));
 	return l == nullptr ? nullptr : l->fn;
 }

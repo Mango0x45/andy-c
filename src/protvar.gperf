@@ -1,0 +1,19 @@
+%compare-lengths
+%define lookup-function-name in_protvar_word_set
+%enum
+%includes
+%language=ANSI-C
+%readonly-tables
+
+%{
+#include <mbstring.h>
+%}
+%%
+shell
+status
+%%
+bool
+isprotvar(struct u8view sv)
+{
+	return in_protvar_word_set(sv.p, sv.len) != nullptr;
+}

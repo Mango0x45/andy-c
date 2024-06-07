@@ -1,5 +1,5 @@
 /* ANSI-C code produced by gperf version 3.1 */
-/* Command-line: gperf --output-file=src/builtin.gen.c src/builtin.gperf  */
+/* Command-line: gperf --output-file src/builtin.gen.c src/builtin.gperf  */
 /* Computed positions: -k'1' */
 
 #if !((' ' == 32) && ('!' == 33) && ('"' == 34) && ('#' == 35) \
@@ -29,11 +29,9 @@
 #error "gperf generated tables don't work with this execution character set. Please report a bug to <bug-gperf@gnu.org>."
 #endif
 
-#line 7 "src/builtin.gperf"
+#line 9 "src/builtin.gperf"
 
 #include "builtin.h"
-
-#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 #line 13 "src/builtin.gperf"
 struct lookup { char *name; builtin_fn fn; };
 #include <string.h>
@@ -82,7 +80,7 @@ hash (register const char *str, register size_t len)
 }
 
 const struct lookup *
-in_word_set (register const char *str, register size_t len)
+in_builtin_word_set (register const char *str, register size_t len)
 {
   enum
     {
@@ -93,6 +91,10 @@ in_word_set (register const char *str, register size_t len)
       MAX_HASH_VALUE = 9
     };
 
+  static const unsigned char lengthtable[] =
+    {
+       0,  0,  2,  3,  4,  5,  0,  0,  3,  4
+    };
   static const struct lookup wordlist[] =
     {
       {""}, {""},
@@ -116,12 +118,13 @@ in_word_set (register const char *str, register size_t len)
       register unsigned int key = hash (str, len);
 
       if (key <= MAX_HASH_VALUE)
-        {
-          register const char *s = wordlist[key].name;
+        if (len == lengthtable[key])
+          {
+            register const char *s = wordlist[key].name;
 
-          if (*str == *s && !strcmp (str + 1, s + 1))
-            return &wordlist[key];
-        }
+            if (*str == *s && !memcmp (str + 1, s + 1, len - 1))
+              return &wordlist[key];
+          }
     }
   return 0;
 }
@@ -130,6 +133,6 @@ in_word_set (register const char *str, register size_t len)
 builtin_fn
 lookup_builtin(const char *s)
 {
-	const struct lookup *l = in_word_set(s, strlen(s));
+	const struct lookup *l = in_builtin_word_set(s, strlen(s));
 	return l == nullptr ? nullptr : l->fn;
 }

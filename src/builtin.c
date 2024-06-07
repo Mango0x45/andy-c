@@ -17,6 +17,9 @@
 #include "symtab.h"
 #include "vartab.h"
 
+/* See protvar.gperf */
+extern bool isprotvar(struct u8view);
+
 #define xwarn(fmt, ...) xwarn(ctx, (fmt)__VA_OPT__(, ) __VA_ARGS__)
 
 static int
@@ -233,6 +236,8 @@ usage:
 	argc -= cli.optind;
 	argv += cli.optind;
 
+	if (argc == 0)
+		goto usage;
 	if ((eflag || kflag.p != nullptr) && argc > 2)
 		goto usage;
 
@@ -242,6 +247,11 @@ usage:
 		sym.len++;
 	if (!Nflag)
 		sym.p = ucsnorm(&sym.len, sym, alloc_heap, nullptr, NF_NFC);
+
+	if (isprotvar(sym)) {
+		rv = xwarn("set: The symbol ‘%.*s’ is protected", SV_PRI_ARGS(sym));
+		goto out;
+	}
 
 	if (eflag) {
 		if (argc < 2) {
