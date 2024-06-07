@@ -338,8 +338,8 @@ builtin_umask(char **argv, size_t argc, struct ctx ctx)
 
 	switch (argc) {
 	case 1: {
-		/* Obtaining the processes umask typically risks a race-condition, as
-		   you need to first obtain the umask by changing it, and then change it
+		/* Obtaining the process’ umask typically risks a race-condition, as you
+		   need to first obtain the umask by changing it, and then change it
 		   back to what it was (this operating is non-atomic).  Since Linux 4.7
 		   however we can read the umask of the current process from the file
 		   /proc/self/status, allowing us to avoid race-conditions. */
