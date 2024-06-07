@@ -381,14 +381,21 @@ builtin_umask(char **argv, size_t argc, struct ctx ctx)
 	case 2: {
 		if (argv[1][0] == 0)
 			return xwarn("umask: Empty mask provided");
+
+		/* strtol() allows these prefixes, but we don’t want them */
 		if (argv[1][0] == '+' || argv[1][0] == '-')
 			return xwarn("umask: Invalid character ‘%c’ in mask", argv[1][0]);
 
 		char *endptr;
 		long msk = strtol(argv[1], &endptr, 0);
-		/* TODO: Handle Unicode */
-		if (*endptr != 0)
-			return xwarn("umask: Invalid character ‘%c’ in mask", *endptr);
+
+		if (*endptr != 0) {
+			struct u8view g, sv = {endptr, strlen(endptr)};
+			ucsgnext(&g, &sv);
+			return xwarn("umask: Invalid character ‘%.*s’ in mask",
+			             SV_PRI_ARGS(g));
+		}
+
 		/* strtol() returns LONG_MAX on overflowing input */
 		if (msk > 0777)
 			return xwarn(u8"umask: Mask ‘%s’ out of range 0–0777", argv[1]);
