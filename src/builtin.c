@@ -209,10 +209,14 @@ usage:
 	if (kflag) {
 		da_foreach (vt->numeric, k)
 			fprintf(outf, "%.*s\n", SV_PRI_ARGS(*k));
-		for (size_t i = 0; i < vt->cap; i++) {
+
+		size_t left = vt->len - vt->numeric.len;
+		for (size_t i = 0; left > 0 && i < vt->cap; i++) {
 			da_foreach (vt->bkts[i], kv) {
-				if (!isbigint(kv->k))
+				if (!isbigint(kv->k)) {
 					fprintf(outf, "%.*s\n", SV_PRI_ARGS(kv->k));
+					left--;
+				}
 			}
 		}
 	} else if (vflag) {
@@ -220,10 +224,13 @@ usage:
 			struct u8view *v = vartabget(*vt, *k);
 			fprintf(outf, "%.*s\n", SV_PRI_ARGS(*v));
 		}
-		for (size_t i = 0; i < vt->cap; i++) {
+		size_t left = vt->len - vt->numeric.len;
+		for (size_t i = 0; left > 0 && i < vt->cap; i++) {
 			da_foreach (vt->bkts[i], kv) {
-				if (!isbigint(kv->k))
+				if (!isbigint(kv->k)) {
 					fprintf(outf, "%.*s\n", SV_PRI_ARGS(kv->v));
+					left--;
+				}
 			}
 		}
 	} else {
