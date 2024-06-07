@@ -191,7 +191,7 @@ usage:
 
 	FILE *outf = fdopen(ctx.fds[STDOUT_FILENO], "w");
 	if (outf == nullptr) {
-		rv = xwarn("fdopen:");
+		rv = xwarn("get: fdopen:");
 		goto out;
 	}
 
@@ -310,12 +310,12 @@ usage:
 	if (eflag) {
 		if (argc < 2) {
 			if (unsetenv(sym.p) == -1) {
-				rv = xwarn("unsetenv: %s:", sym.p);
+				rv = xwarn("set: unsetenv: %s:", sym.p);
 				goto out;
 			}
 		} else {
 			if (setenv(sym.p, argv[1], true) == -1) {
-				rv = xwarn("setenv: %s:", sym.p);
+				rv = xwarn("set: setenv: %s:", sym.p);
 				goto out;
 			}
 		}
