@@ -85,6 +85,8 @@ prsstmt(struct parser p)
 		.kind = SK_ANDOR,
 		.ao = prsandor(p),
 	};
+	if (stmt.ao.r == nullptr)
+		stmt.kind = -1;
 	return stmt;
 }
 
@@ -186,6 +188,7 @@ prsunit(struct parser p)
 	bool saw_bang = false;
 	struct unit u = {.neg = false};
 	struct lextok t, last;
+	struct arena_ctx ctx = {.a = p.a};
 
 	while ((t = lexpeek(p.l)).kind == LTK_WORD && t.sv.len == 1
 	       && t.sv.p[0] == '!')
@@ -196,9 +199,64 @@ prsunit(struct parser p)
 		last = t;
 	}
 
-	if (lexpeek(p.l).kind == LTK_BRC_O) {
+	t = lexpeek(p.l);
+	if (t.kind == LTK_BRC_O) {
 		u.kind = UK_CMPND;
 		u.cp = prscmpnd(p);
+	} else if (t.kind == LTK_WORD && ucseq(t.sv, U8("if"))) {
+		EAT;
+		u.kind = UK_IF;
+		u.cond.then.alloc = u.cond.els.alloc = alloc_arena;
+		u.cond.then.ctx = u.cond.els.ctx = &ctx;
+		u.cond.s = arena_new(p.a, typeof(*u.cond.s), 1);
+		if (u.cond.s == nullptr)
+			err("arena_new:");
+		*u.cond.s = prsstmt(p);
+
+		if (u.cond.s->kind == -1) {
+			erremit(p.l->file, p.l->base, t.sv, t.sv.p - p.l->base,
+			        "conditional statement missing condition");
+			longjmp(*p.err, 1);
+		}
+		if (lexpeek(p.l).kind == LTK_EOF) {
+			erremit(p.l->file, p.l->base, t.sv, t.sv.p - p.l->base,
+			        "conditional statement missing opening brace");
+			longjmp(*p.err, 1);
+		}
+
+		u.cond.then = prscmpnd(p);
+
+		while (lexpeek(p.l).kind == LTK_NL)
+			EAT;
+
+		t = lexpeek(p.l);
+		if (t.kind != LTK_WORD || !ucseq(t.sv, U8("else")))
+			goto out;
+
+		struct u8view els = t.sv;
+
+		EAT;
+		t = lexpeek(p.l);
+		if (t.kind == LTK_WORD && ucseq(t.sv, U8("if"))) {
+			struct andor ao = {};
+			if ((ao.r = arena_new(ctx.a, typeof(*ao.r), 1)) == nullptr)
+				err("arena_new:");
+			*ao.r = (struct pipe){.alloc = alloc_arena, .ctx = &ctx};
+			DAPUSH(ao.r, prsunit(p));
+			struct stmt s = {.kind = SK_ANDOR, .ao = ao};
+			DAPUSH(&u.cond.els, s);
+		} else {
+			while (t.kind == LTK_NL) {
+				EAT;
+				t = lexpeek(p.l);
+			}
+			if (t.kind != LTK_BRC_O) {
+				erremit(p.l->file, p.l->base, els, els.p - p.l->base,
+				        "‘else’ branch of conditional statement missing body");
+				longjmp(*p.err, 1);
+			}
+			u.cond.els = prscmpnd(p);
+		}
 	} else {
 		u.kind = UK_CMD;
 		u.c = prscmd(p);
@@ -212,6 +270,7 @@ prsunit(struct parser p)
 		}
 	}
 
+out:
 	return u;
 }
 

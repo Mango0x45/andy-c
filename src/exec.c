@@ -236,6 +236,10 @@ execunit(struct unit u, struct ctx ctx, int mqd)
 		if (mqd != -1)
 			sendfds(mqd, ctx.fds);
 		break;
+	case UK_IF:
+		ret = execstmt(*u.cond.s, ctx);
+		ret = execcmpnd(ret == EXIT_SUCCESS ? u.cond.then : u.cond.els, ctx);
+		break;
 	}
 	if (!u.neg)
 		return ret;
