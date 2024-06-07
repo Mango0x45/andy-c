@@ -22,6 +22,9 @@ extern bool isprotvar(struct u8view);
 
 #define xwarn(fmt, ...) xwarn(ctx, (fmt)__VA_OPT__(, ) __VA_ARGS__)
 
+/* clang-format off */
+/* Clang-Format keeps trying to put the function name on the same line as the
+   return type because of the parenthesis */
 static int
 (xwarn)(struct ctx ctx, const char *fmt, ...)
 {
@@ -45,6 +48,7 @@ static int
 	va_end(ap);
 	return EXIT_FAILURE;
 }
+/* clang-format on */
 
 int
 builtin_cd(char **argv, size_t n, struct ctx ctx)
