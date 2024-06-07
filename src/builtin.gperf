@@ -18,6 +18,7 @@ false, builtin_false
 get,   builtin_get
 set,   builtin_set
 true,  builtin_true
+umask, builtin_umask
 %%
 builtin *
 lookup_builtin(const char *s)

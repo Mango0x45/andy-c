@@ -1,3 +1,5 @@
+#include <sys/stat.h>
+
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -324,5 +326,78 @@ out:
 int
 builtin_true(char **, size_t, struct ctx)
 {
+	return EXIT_SUCCESS;
+}
+
+int
+builtin_umask(char **argv, size_t argc, struct ctx ctx)
+{
+	FILE *fp = fdopen(ctx.fds[STDOUT_FILENO], "w");
+	if (fp == nullptr)
+		return xwarn("umask: fdopen:");
+
+	switch (argc) {
+	case 1: {
+		/* Obtaining the processes umask typically risks a race-condition, as
+		   you need to first obtain the umask by changing it, and then change it
+		   back to what it was (this operating is non-atomic).  Since Linux 4.7
+		   however we can read the umask of the current process from the file
+		   /proc/self/status, allowing us to avoid race-conditions. */
+#if __linux__
+#	define MSKKEY   "Umask:\t"
+#	define STATPATH "/proc/self/status"
+
+		char *p = nullptr;
+		size_t n;
+		ssize_t nr;
+
+		/* We could fallback to using umask(2), but that is probably overkill */
+		FILE *statf = fopen(STATPATH, "r");
+		if (statf == nullptr)
+			return xwarn("umask: fopen: %s:", STATPATH);
+
+		while ((nr = getline(&p, &n, statf)) > 0) {
+			if (p[n - 1] == '\n')
+				p[--n] = 0;
+			if (strncmp(p, MSKKEY, sizeof(MSKKEY) - 1) == 0) {
+				fprintf(fp, "%s", p + sizeof(MSKKEY) - 1);
+				break;
+			}
+		}
+		free(p);
+
+		if (ferror(statf))
+			return xwarn("umask: getline: %s:", STATPATH);
+
+#	undef MSKKEY
+#	undef STATPATH
+#else
+		mode_t msk = umask(0);
+		umask(msk);
+		fprintf(fp, "0%03o\n", (int)msk);
+#endif
+		break;
+	}
+	case 2: {
+		if (argv[1][0] == 0)
+			return xwarn("umask: Empty mask provided");
+		if (argv[1][0] == '+' || argv[1][0] == '-')
+			return xwarn("umask: Invalid character ‘%c’ in mask", argv[1][0]);
+
+		char *endptr;
+		long msk = strtol(argv[1], &endptr, 0);
+		/* TODO: Handle Unicode */
+		if (*endptr != 0)
+			return xwarn("umask: Invalid character ‘%c’ in mask", *endptr);
+		/* strtol() returns LONG_MAX on overflowing input */
+		if (msk > 0777)
+			return xwarn(u8"umask: Mask ‘%s’ out of range 0–0777", argv[1]);
+
+		umask(msk);
+		break;
+	}
+	default:
+		return xwarn("Usage: umask [mask]");
+	}
 	return EXIT_SUCCESS;
 }
