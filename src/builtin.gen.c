@@ -33,7 +33,7 @@
 
 #include "builtin.h"
 #line 13 "src/builtin.gperf"
-struct lookup { char *name; builtin_fn fn; };
+struct lookup { char *name; builtin *fn; };
 #include <string.h>
 /* maximum key range = 8, duplicates = 0 */
 
@@ -130,7 +130,7 @@ in_builtin_word_set (register const char *str, register size_t len)
 }
 #line 21 "src/builtin.gperf"
 
-builtin_fn
+builtin *
 lookup_builtin(const char *s)
 {
 	const struct lookup *l = in_builtin_word_set(s, strlen(s));

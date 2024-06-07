@@ -280,7 +280,7 @@ execcmd(struct cmd c, struct ctx ctx, int mqd)
 		goto out;
 	}
 
-	builtin_fn bltn = lookup_builtin(argv.buf[0]);
+	builtin *bltn = lookup_builtin(argv.buf[0]);
 	if (bltn != nullptr) {
 		ret = bltn(argv.buf, argv.len, ctx);
 		if (mqd != -1)

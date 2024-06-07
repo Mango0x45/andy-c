@@ -5,20 +5,15 @@
 
 #include "exec.h"
 
-typedef int (*builtin_fn)(char **, size_t, struct ctx);
+typedef int builtin(char **, size_t, struct ctx);
 
 struct lookup {
 	char *name;
-	builtin_fn fn;
+	builtin *fn;
 };
 
-builtin_fn lookup_builtin(const char *);
-
-int builtin_cd(char **, size_t, struct ctx);
-int builtin_echo(char **, size_t, struct ctx);
-int builtin_false(char **, size_t, struct ctx);
-int builtin_get(char **, size_t, struct ctx);
-int builtin_set(char **, size_t, struct ctx);
-int builtin_true(char **, size_t, struct ctx);
+builtin *lookup_builtin(const char *);
+builtin builtin_cd, builtin_echo, builtin_false, builtin_get, builtin_set,
+	builtin_true;
 
 #endif /* !ANDY_BUILTIN_H */
