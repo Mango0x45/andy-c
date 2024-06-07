@@ -54,7 +54,7 @@ static int
 /* clang-format on */
 
 int
-builtin_cd(char **argv, size_t n, struct ctx ctx)
+bltncd(char **argv, size_t n, struct ctx ctx)
 {
 	if (n == 1) {
 		char *h = getenv("HOME");
@@ -67,7 +67,7 @@ builtin_cd(char **argv, size_t n, struct ctx ctx)
 }
 
 int
-builtin_echo(char **argv, size_t n, struct ctx ctx)
+bltnecho(char **argv, size_t n, struct ctx ctx)
 {
 	FILE *fp = fdopen(ctx.fds[STDOUT_FILENO], "w");
 	if (fp == nullptr)
@@ -89,7 +89,7 @@ builtin_echo(char **argv, size_t n, struct ctx ctx)
 }
 
 int
-builtin_exec(char **argv, size_t argc, struct ctx ctx)
+bltnexec(char **argv, size_t argc, struct ctx ctx)
 {
 	if (argc < 2)
 		return xwarn("Usage: exec command [arguments ...]");
@@ -98,7 +98,7 @@ builtin_exec(char **argv, size_t argc, struct ctx ctx)
 }
 
 int
-builtin_exit(char **argv, size_t argc, struct ctx ctx)
+bltnexit(char **argv, size_t argc, struct ctx ctx)
 {
 	if (argc > 2)
 		return xwarn("Usage: exit [status]");
@@ -129,13 +129,13 @@ builtin_exit(char **argv, size_t argc, struct ctx ctx)
 }
 
 int
-builtin_false(char **, size_t, struct ctx)
+bltnfalse(char **, size_t, struct ctx)
 {
 	return EXIT_FAILURE;
 }
 
 int
-builtin_get(char **argv, size_t argc, struct ctx ctx)
+bltnget(char **argv, size_t argc, struct ctx ctx)
 {
 	int rv = EXIT_SUCCESS;
 	bool eflag, kflag, Nflag, vflag;
@@ -244,7 +244,7 @@ out:
 }
 
 int
-builtin_set(char **argv, size_t argc, struct ctx ctx)
+bltnset(char **argv, size_t argc, struct ctx ctx)
 {
 	if (argc < 2) {
 usage:
@@ -365,13 +365,13 @@ out:
 }
 
 int
-builtin_true(char **, size_t, struct ctx)
+bltntrue(char **, size_t, struct ctx)
 {
 	return EXIT_SUCCESS;
 }
 
 int
-builtin_umask(char **argv, size_t argc, struct ctx ctx)
+bltnumask(char **argv, size_t argc, struct ctx ctx)
 {
 	FILE *fp = fdopen(ctx.fds[STDOUT_FILENO], "w");
 	if (fp == nullptr)

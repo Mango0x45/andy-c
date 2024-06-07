@@ -12,15 +12,15 @@
 
 struct lookup { char *name; builtin *fn; };
 %%
-cd,    builtin_cd
-echo,  builtin_echo
-exec,  builtin_exec
-exit,  builtin_exit
-false, builtin_false
-get,   builtin_get
-set,   builtin_set
-true,  builtin_true
-umask, builtin_umask
+cd,    bltncd
+echo,  bltnecho
+exec,  bltnexec
+exit,  bltnexit
+false, bltnfalse
+get,   bltnget
+set,   bltnset
+true,  bltntrue
+umask, bltnumask
 %%
 builtin *
 lookup_builtin(const char *s)

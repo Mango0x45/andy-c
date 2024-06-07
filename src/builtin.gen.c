@@ -112,26 +112,26 @@ in_builtin_word_set (register const char *str, register size_t len)
     {
       {""}, {""},
 #line 15 "src/builtin.gperf"
-      {"cd",    builtin_cd},
+      {"cd",    bltncd},
 #line 21 "src/builtin.gperf"
-      {"set",   builtin_set},
+      {"set",   bltnset},
 #line 22 "src/builtin.gperf"
-      {"true",  builtin_true},
+      {"true",  bltntrue},
 #line 19 "src/builtin.gperf"
-      {"false", builtin_false},
+      {"false", bltnfalse},
       {""}, {""},
 #line 20 "src/builtin.gperf"
-      {"get",   builtin_get},
+      {"get",   bltnget},
 #line 18 "src/builtin.gperf"
-      {"exit",  builtin_exit},
+      {"exit",  bltnexit},
 #line 23 "src/builtin.gperf"
-      {"umask", builtin_umask},
+      {"umask", bltnumask},
       {""}, {""}, {""},
 #line 17 "src/builtin.gperf"
-      {"exec",  builtin_exec},
+      {"exec",  bltnexec},
       {""}, {""}, {""}, {""},
 #line 16 "src/builtin.gperf"
-      {"echo",  builtin_echo}
+      {"echo",  bltnecho}
     };
 
   if (len <= MAX_WORD_LENGTH && len >= MIN_WORD_LENGTH)
