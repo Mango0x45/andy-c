@@ -45,7 +45,7 @@ struct MAPNAME {
 
 struct MAPNAME CONCAT(mk, MAPNAME)(void);
 void FUNC(free)(struct MAPNAME);
-V *FUNC(add)(struct MAPNAME *, K, V);
+V *FUNC(add)(struct MAPNAME *, K, V, bool);
 V *FUNC(get)(struct MAPNAME, K);
 void FUNC(del)(struct MAPNAME *, K);
 
@@ -87,7 +87,7 @@ FUNC(free)(struct MAPNAME m)
 }
 
 V *
-FUNC(add)(struct MAPNAME *m, K k, V v)
+FUNC(add)(struct MAPNAME *m, K k, V v, bool kfree)
 {
 	if (m->len + 1 >= m->cap * LOADF) {
 		size_t ncap;
@@ -101,7 +101,8 @@ FUNC(add)(struct MAPNAME *m, K k, V v)
 	size_t i = FUNC(hash)(k) % m->cap;
 	da_foreach (m->bkts[i], kv) {
 		if (FUNC(eq)(k, kv->k)) {
-			FUNC(kfree)(k);
+			if (kfree)
+				FUNC(kfree)(k);
 			FUNC(vfree)(kv->v);
 			kv->v = v;
 			return &kv->v;
@@ -181,7 +182,7 @@ FUNC(resz)(struct MAPNAME *m, size_t cap)
 	for (size_t i = 0; i < m->cap; i++) {
 		struct BKT b = m->bkts[i];
 		da_foreach (b, kv)
-			FUNC(add)(&_m, kv->k, kv->v);
+			FUNC(add)(&_m, kv->k, kv->v, true);
 		free(b.buf);
 	}
 	free(m->bkts);

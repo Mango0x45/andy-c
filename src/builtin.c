@@ -266,7 +266,7 @@ usage:
 
 		/* Don’t free SYM if we’re adding it to the symbol table, because that
 		   would obviously break the symbol table */
-		vt = symtabadd(&symboltable, sym, mkvartab());
+		vt = symtabadd(&symboltable, sym, mkvartab(), true);
 		do_free = false;
 	}
 
@@ -277,7 +277,7 @@ usage:
 		k.p = memcpy(bufalloc(nullptr, 1, k.len), kflag.p, k.len);
 		struct u8view v = {.len = strlen(argv[1])};
 		v.p = memcpy(bufalloc(nullptr, 1, v.len), argv[1], v.len);
-		vartabadd(vt, k, v);
+		vartabadd(vt, k, v, true);
 	} else if (argc == 1) {
 		symtabdel(&symboltable, sym);
 	} else {
@@ -297,7 +297,7 @@ usage:
 
 			struct u8view k = {kbuf, klen};
 			struct u8view v = {vbuf, vlen};
-			vartabadd(vt, k, v);
+			vartabadd(vt, k, v, true);
 		}
 	}
 

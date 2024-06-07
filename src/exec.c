@@ -64,15 +64,20 @@ shellinit(void)
 	struct u8view k;
 	struct vartab *vt;
 
-	vt = symtabadd(&symboltable, U8("shell"), mkvartab());
+	vt = symtabadd(&symboltable, U8("status"), mkvartab(), true);
+	k.len = 1;
+	*(char *)(k.p = bufalloc(nullptr, k.len, sizeof(char))) = '0';
+	vartabadd(vt, U8("0"), k, true);
+
+	vt = symtabadd(&symboltable, U8("shell"), mkvartab(), true);
 
 	k.p = bufalloc(nullptr, U64_STR_MAX, sizeof(char));
-	k.len = snprintf((char *)k.p, U64_STR_MAX, "%ld", (long)getpid());
-	vartabadd(vt, U8("pid"), k);
+	k.len = sprintf((char *)k.p, "%ld", (long)getpid());
+	vartabadd(vt, U8("pid"), k, true);
 
 	k.p = bufalloc(nullptr, U64_STR_MAX, sizeof(char));
-	k.len = snprintf((char *)k.p, U64_STR_MAX, "%ld", (long)getppid());
-	vartabadd(vt, U8("ppid"), k);
+	k.len = sprintf((char *)k.p, "%ld", (long)getppid());
+	vartabadd(vt, U8("ppid"), k, true);
 
 	if (setenv("SHELL", "Andy", 1) == -1)
 		warn("setenv: SHELL=Andy:");
@@ -92,11 +97,18 @@ execprog(struct program p, struct ctx ctx)
 int
 execstmt(struct stmt stmt, struct ctx ctx)
 {
+	int ret;
 	switch (stmt.kind) {
 	case SK_ANDOR:
-		return execandor(stmt.ao, ctx);
+		ret = execandor(stmt.ao, ctx);
 	}
-	unreachable();
+
+	struct u8view v;
+	v.p = bufalloc(nullptr, U8_LEN_MAX, sizeof(char));
+	v.len = sprintf((char *)v.p, "%d", ret);
+	vartabadd(symtabget(symboltable, U8("status")), U8("0"), v, false);
+
+	return ret;
 }
 
 int
@@ -203,7 +215,7 @@ execpipe(struct pipe p, struct ctx ctx)
 
 	msgctl(mqd, IPC_RMID, nullptr);
 
-	uintptr_t ret = 0;
+	uintptr_t ret;
 	for (size_t i = 0; i < p.len; i++) {
 		if ((errno = pthread_join(thrds[i], (void **)&ret)) != 0)
 			err("pthread_join:");
@@ -429,7 +441,7 @@ var_out:
 			}
 		}
 
-		snprintf(sa.p[0], U64_STR_MAX, "%zu", cnt);
+		sprintf(sa.p[0], "%zu", cnt);
 		break;
 	}
 	case VK_SEL:
