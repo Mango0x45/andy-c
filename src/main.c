@@ -27,6 +27,9 @@ static bool interactive;
 static void rloop(void);
 static int readfile(FILE *);
 static struct u8view ucstrim(struct u8view);
+#ifdef _GNU_SOURCE
+static void cleanup(int, void *);
+#endif
 
 int
 main(int, char **argv)
@@ -61,6 +64,9 @@ rloop(void)
 
 	if ((err = read_history(histfile)) != 0)
 		warn("read_history: %s: %s", histfile, strerror(err));
+#ifdef _GNU_SOURCE
+	on_exit(cleanup, histfile);
+#endif
 
 	shellinit();
 
@@ -114,9 +120,11 @@ empty:
 		free(save);
 	}
 
-	if ((err = write_history(histfile)) != 0)
-		warn("write_history: %s: %s", histfile, strerror(err));
-	rl_clear_history();
+	/* When we don’t have on_exit() available, we need to manually call the
+	   cleanup function */
+#ifndef _GNU_SOURCE
+	cleanup(0, histfile);
+#endif
 }
 
 int
@@ -189,3 +197,13 @@ ucstrim(struct u8view sv)
 
 	return sv;
 }
+
+#ifdef _GNU_SOURCE
+void
+cleanup(int, void *p)
+{
+	if ((errno = write_history(p)) != 0)
+		warn("write_history: %s:", (char *)p);
+	rl_clear_history();
+}
+#endif

@@ -2,6 +2,7 @@
 
 #include <errno.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -94,6 +95,37 @@ builtin_exec(char **argv, size_t argc, struct ctx ctx)
 		return xwarn("Usage: exec command [arguments ...]");
 	execvp(argv[1], argv + 1);
 	return xwarn("exec: %s:", argv[1]);
+}
+
+int
+builtin_exit(char **argv, size_t argc, struct ctx ctx)
+{
+	if (argc > 2)
+		return xwarn("Usage: exit [status]");
+	if (argc == 1)
+		exit(EXIT_SUCCESS);
+
+	/* strtol() allows these prefixes, but we don’t want them */
+	if (argv[1][0] == '+' || argv[1][0] == '-')
+		return xwarn("exit: Invalid character ‘%c’ in status", argv[1][0]);
+
+	char *endptr;
+	long status = strtol(argv[1], &endptr, 10);
+
+	if (*endptr != 0) {
+		struct u8view g, sv = {endptr, strlen(endptr)};
+		ucsgnext(&g, &sv);
+		return xwarn("exit: Invalid character ‘%.*s’ in status",
+		             SV_PRI_ARGS(g));
+	}
+
+	/* strtol() returns LONG_MAX on overflowing input */
+	ASSUME(status >= 0);
+	if (status > UINT8_MAX) {
+		return xwarn(u8"exit: Exit status ‘%s’ out of range 0–%d", argv[1],
+		             UINT8_MAX);
+	}
+	exit(status);
 }
 
 int

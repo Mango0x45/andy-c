@@ -13,7 +13,7 @@ struct lookup {
 };
 
 builtin *lookup_builtin(const char *);
-builtin builtin_cd, builtin_echo, builtin_exec, builtin_false, builtin_get,
-	builtin_set, builtin_true, builtin_umask;
+builtin builtin_cd, builtin_echo, builtin_exec, builtin_exit, builtin_false,
+	builtin_get, builtin_set, builtin_true, builtin_umask;
 
 #endif /* !ANDY_BUILTIN_H */
